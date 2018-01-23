@@ -1,0 +1,1 @@
+@docker-compose --file "%~dp0..\docker\docker-compose.yml" --project-directory "%~dp0.." run --rm punicdata ./bin/punic-build-data %*

@@ -1,0 +1,7 @@
+version: '2.2'
+
+services:
+  punicdata:
+    build: ./docker
+    volumes:
+      - .:/punicdata
