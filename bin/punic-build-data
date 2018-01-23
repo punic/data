@@ -917,7 +917,7 @@ class SourceData
             foreach ($contents as $item) {
                 if (preg_match('/^(.+)\.xml$/', $item, $matches)) {
                     $localeID = $matches[1];
-                    if (preg_match('/^([a-z]{2,3})(?:_([A-Z][a-z]{3}))?(?:_([A-Z]{2}|[0-9]{3}))?$/', $localeID)) {
+                    if ($localeID === 'root' || preg_match('/^([a-z]{2,3})(?:_([A-Z][a-z]{3}))?(?:_([A-Z]{2}|[0-9]{3}))?$/', $localeID)) {
                         if (!in_array($localeID, $availableLocales, true)) {
                             $availableLocales[] = $localeID;
                             if (strpos($localeID, '_') !== false) {
