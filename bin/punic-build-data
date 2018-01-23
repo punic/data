@@ -75,7 +75,7 @@ try {
     }
     $jsonReader = new JsonReader();
     $phpWriter = new PhpWriter($fileUtils, $options);
-    $converter = new JSonConverter($fileUtils, $sourceData, $jsonReader, $phpWriter);
+    $converter = new JSonConverter($fileUtils, $sourceData, $jsonReader, $phpWriter, $options);
     $numLocales = count($locales);
     $currentLocaleIndex = 0;
     foreach ($locales as $localeID) {
@@ -1417,17 +1417,23 @@ class JSonConverter
     protected $phpWriter;
 
     /**
+     * @var BuildOptions
+     */
+    protected $options;
+
+    /**
      * @param FileUtils $fileUtils
      * @param SourceData $sourceData
      * @param JsonReader $jsonReader
      * @param PhpWriter $phpWriter
      */
-    public function __construct(FileUtils $fileUtils, SourceData $sourceData, JsonReader $jsonReader, PhpWriter $phpWriter)
+    public function __construct(FileUtils $fileUtils, SourceData $sourceData, JsonReader $jsonReader, PhpWriter $phpWriter, BuildOptions $options)
     {
         $this->fileUtils = $fileUtils;
         $this->sourceData = $sourceData;
         $this->jsonReader = $jsonReader;
         $this->phpWriter = $phpWriter;
+        $this->options = $options;
     }
 
     /**
@@ -1524,13 +1530,12 @@ class JSonConverter
                 $this->phpWriter->save($data, $destinationFile);
             }
             if ($identifier === 'plurals') {
-                $testDir = rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(dirname(__FILE__))), '/').'/tests/dataFiles';
-                if (is_dir($testDir)) {
-                    $sourceFile = $sourceDirectory.'/plurals.json';
-                    $data = $this->jsonReader->read($sourceFile);
-                    $testData = $converter->getTestData($data);
-                    $this->phpWriter->save($testData, $testDir.'/plurals.php');
-                }
+                $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
+                $this->fileUtils->createDirectory($testDir);
+                $sourceFile = $sourceDirectory.'/plurals.json';
+                $data = $this->jsonReader->read($sourceFile);
+                $testData = $converter->getTestData($data);
+                $this->phpWriter->save($testData, $testDir.'/plurals.php');
             }
         }
     }
