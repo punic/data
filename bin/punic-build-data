@@ -1076,7 +1076,6 @@ class SourceData
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
                 $cmd .= ' -r true'; // (true|false) Whether the output JSON for the main directory should be based on resolved or unresolved data
-                $cmd .= ' -o true'; // (true|false) Whether to write out the 'other' section, which contains any unmatched paths
                 $cmd .= ' -m '.argToShell(str_replace('-', '_', $localeID)); // Regular expression to define only specific locales or files to be generated
                 $output = array();
                 $rc = null;
