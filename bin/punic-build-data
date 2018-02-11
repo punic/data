@@ -73,9 +73,8 @@ try {
         $sourceData->ensureJsonLocale('en');
         echo "done.\n";
     }
-    $jsonReader = new JsonReader();
     $phpWriter = new PhpWriter($fileUtils, $options);
-    $converter = new JSonConverter($fileUtils, $sourceData, $jsonReader, $phpWriter, $options);
+    $converter = new CldrConverter($fileUtils, $sourceData, $phpWriter, $options);
     $numLocales = count($locales);
     $currentLocaleIndex = 0;
     foreach ($locales as $localeID) {
@@ -171,7 +170,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '31';
+    const DEFAULT_CLDR_VERSION = '32.0.1';
 
     /**
      * Placeholder for all locales.
@@ -499,6 +498,7 @@ class BuildOptions
             'localeDisplayNames.php',
             'measurementSystemNames.php',
             'numbers.php',
+            'subdivisions.php',
             'territories.php',
             'timeZoneNames.php',
             'units.php',
@@ -516,6 +516,7 @@ class BuildOptions
             'parentLocales.php',
             'plurals.php',
             'primaryZones.php',
+            'subdivisionContainment.php',
             'telephoneCodeData.php',
             'territoryContainment.php',
             'territoryInfo.php',
@@ -836,7 +837,7 @@ class SourceData
      *
      * @return string
      */
-    protected function getSvnDirectory()
+    public function getSvnDirectory()
     {
         return $this->options->getTemporaryDirectory().'/cldr/'.$this->options->getCLDRVersion().'/svn';
     }
@@ -1291,32 +1292,6 @@ class LocaleIdentifier
     }
 }
 
-class JsonReader
-{
-    /**
-     * Read a JSON-encoded data from a file.
-     *
-     * @param string $file
-     *
-     * @throws Exception
-     *
-     * @return array
-     */
-    public function read($file)
-    {
-        $string = @file_get_contents($file);
-        if ($string === false) {
-            throw new Exception("Failed to read from file $file");
-        }
-        $data = @json_decode($string, true);
-        if ($data === null) {
-            throw new Exception("Failed to decode the JSON data of $file");
-        }
-
-        return $data;
-    }
-}
-
 class PhpWriter
 {
     /**
@@ -1393,7 +1368,7 @@ class PhpWriter
     }
 }
 
-class JSonConverter
+class CldrConverter
 {
     /**
      * @var FileUtils
@@ -1404,11 +1379,6 @@ class JSonConverter
      * @var SourceData
      */
     protected $sourceData;
-
-    /**
-     * @var JsonReader
-     */
-    protected $jsonReader;
 
     /**
      * @var PhpWriter
@@ -1423,14 +1393,12 @@ class JSonConverter
     /**
      * @param FileUtils $fileUtils
      * @param SourceData $sourceData
-     * @param JsonReader $jsonReader
      * @param PhpWriter $phpWriter
      */
-    public function __construct(FileUtils $fileUtils, SourceData $sourceData, JsonReader $jsonReader, PhpWriter $phpWriter, BuildOptions $options)
+    public function __construct(FileUtils $fileUtils, SourceData $sourceData, PhpWriter $phpWriter, BuildOptions $options)
     {
         $this->fileUtils = $fileUtils;
         $this->sourceData = $sourceData;
-        $this->jsonReader = $jsonReader;
         $this->phpWriter = $phpWriter;
         $this->options = $options;
     }
@@ -1446,41 +1414,30 @@ class JSonConverter
     public function convertLocale($localeID, $destinationDirectory)
     {
         $this->fileUtils->createDirectory($destinationDirectory);
+
         try {
             $converters = array(
-                'calendar' => CalendarLocalePunicConversion::create(),
-                'timeZoneNames' => TimeZoneNameslocalePunicConversion::create(),
-                'listPatterns' => ListPatternsLocalePunicConversion::create(),
-                'units' => UnitsLocalePunicConversion::create(),
-                'dateFields' => NoopLocalePunicConversion::create(array('dates', 'fields')),
-                'languages' => LanguagesLocalePunicConversion::create(),
-                'territories' => NoopLocalePunicConversion::create(array('localeDisplayNames', 'territories')),
-                'localeDisplayNames' => LocaleDisplayNamesLocalePunicConversion::create(),
-                'numbers' => NumbersLocalePunicConversion::create(),
-                'layout' => NoopLocalePunicConversion::create(array('layout', 'orientation')),
-                'measurementSystemNames' => NoopLocalePunicConversion::create(array('localeDisplayNames', 'measurementSystemNames')),
-                'currencies' => CurrenciesLocalePunicConversion::create(),
+                new CalendarLocalePunicConversion(),
+                new TimeZoneNameslocalePunicConversion(),
+                new ListPatternsLocalePunicConversion(),
+                new UnitsLocalePunicConversion(),
+                new NoopLocalePunicConversion(array('dates', 'fields'), 'dateFields'),
+                new LanguagesLocalePunicConversion(),
+                new NoopLocalePunicConversion(array('localeDisplayNames', 'territories')),
+                new LocaleDisplayNamesLocalePunicConversion(),
+                new NumbersLocalePunicConversion(),
+                new NoopLocalePunicConversion(array('layout', 'orientation'), 'layout'),
+                new NoopLocalePunicConversion(array('localeDisplayNames', 'measurementSystemNames')),
+                new CurrenciesLocalePunicConversion(),
+                new SubdivisionsLocalePunicConversion(),
             );
+
             foreach ($converters as $identifier => $converter) {
-                $destinationFile = $destinationDirectory.'/'.$identifier.'.php';
-                if ($identifier === 'calendar') {
-                    $sourceIdentifier = 'ca-gregorian';
-                } else {
-                    $sourceIdentifier = $identifier;
-                }
-                $useLocale = $localeID;
-                $sourceFile = $this->sourceData->getJsonDirectoryForLocale($useLocale).'/'.$sourceIdentifier.'.json';
-                if (!is_file($sourceFile)) {
-                    $useLocale = 'en';
-                    $sourceFile = $this->sourceData->getJsonDirectoryForLocale($useLocale).'/'.$sourceIdentifier.'.json';
-                    if (!is_file($sourceFile)) {
-                        throw new Exception("File not found: $sourceFile");
-                    }
-                }
-                $data = $this->jsonReader->read($sourceFile);
-                $data = $converter->process($data, $useLocale);
+                $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
+                $data = $converter->convert($this->sourceData, $localeID);
                 $this->phpWriter->save($data, $destinationFile);
             }
+
             if ($localeID !== 'en') {
                 $this->copyMissingData_currency(
                     $destinationDirectory.'/currencies.php'
@@ -1502,41 +1459,33 @@ class JSonConverter
     public function convertSupplemental($destinationDirectory)
     {
         $converters = array(
-            'telephoneCodeData' => TelephoneCodeDataSupplementalPunicConversion::create(),
-            'territoryInfo' => TerritoryInfoSupplementalPunicConversion::create(),
-            'timeData' => TimeDataSupplementalPunicConversion::create(),
-            'dayPeriods' => DayPeriodsSupplementalPunicConversion::create(),
-            'weekData' => WeekDataSupplementalPunicConversion::create(),
-            'parentLocales' => NoopSupplementalPunicConversion::create(array('supplemental', 'parentLocales', 'parentLocale')),
-            'likelySubtags' => NoopSupplementalPunicConversion::create(array('supplemental', 'likelySubtags')),
-            'territoryContainment' => TerritoryContainmentSupplementalPunicConversion::create(),
-            'metaZones' => MetaZonesSupplementalPunicConversion::create(),
-            'primaryZones' => NoopSupplementalPunicConversion::create(array('supplemental', 'primaryZones')),
-            'plurals' => PluralsSupplementalPunicConversion::create(),
-            'measurementData' => MeasurementDataSupplementalPunicConversion::create(),
-            'currencyData' => CurrencyDataSupplementalPunicConversion::create(),
+            new TelephoneCodeDataSupplementalPunicConversion(),
+            new TerritoryInfoSupplementalPunicConversion(),
+            new TimeDataSupplementalPunicConversion(),
+            new DayPeriodsSupplementalPunicConversion(),
+            new WeekDataSupplementalPunicConversion(),
+            new NoopSupplementalPunicConversion(array('supplemental', 'parentLocales', 'parentLocale'), 'parentLocales'),
+            new NoopSupplementalPunicConversion(array('supplemental', 'likelySubtags')),
+            new TerritoryContainmentSupplementalPunicConversion(),
+            new MetaZonesSupplementalPunicConversion(),
+            new NoopSupplementalPunicConversion(array('supplemental', 'primaryZones')),
+            new PluralsSupplementalPunicConversion(),
+            new MeasurementDataSupplementalPunicConversion(),
+            new CurrencyDataSupplementalPunicConversion(),
+            new SubdivisionsSupplementalPunicConversion(),
         );
-        $sourceDirectory = $this->sourceData->getJsonDirectoryForGeneric('supplemental');
-        foreach ($converters as $identifier => $converter) {
-            $destinationFile = $destinationDirectory.'/'.$identifier.'.php';
+
+        foreach ($converters as $converter) {
+            $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
             if (!is_file($destinationFile)) {
-                $sourceFile = $sourceDirectory.'/'.$identifier.'.json';
-                if (!is_file($sourceFile)) {
-                    throw new Exception("File not found: $sourceFile");
-                }
-                $data = $this->jsonReader->read($sourceFile);
-                $data = $converter->process($data);
+                $data = $converter->convert($this->sourceData);
                 $this->phpWriter->save($data, $destinationFile);
             }
-            if ($identifier === 'plurals') {
-                $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
-                $this->fileUtils->createDirectory($testDir);
-                $sourceFile = $sourceDirectory.'/plurals.json';
-                $data = $this->jsonReader->read($sourceFile);
-                $testData = $converter->getTestData($data);
-                $this->phpWriter->save($testData, $testDir.'/plurals.php');
-            }
         }
+
+        $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
+        $this->fileUtils->createDirectory($testDir);
+        copy($destinationDirectory.'/plurals.php', $testDir.'/plurals.php');
     }
 
     /**
@@ -1701,9 +1650,8 @@ class JSonConverter
      */
     private function copyMissingData_currency($destinationFile)
     {
-        $sourceFile = $this->sourceData->getJsonDirectoryForLocale('en').'/currencies.json';
-        $sourceData = $this->jsonReader->read($sourceFile);
-        $sourceData = CurrenciesLocalePunicConversion::create()->process($sourceData, 'en');
+        $converter = new CurrenciesLocalePunicConversion();
+        $sourceData = $converter->convert($this->sourceData, 'en');
         $destinationData = include $destinationFile;
         $someChanged = false;
         foreach ($sourceData as $currency => $currencyInfo) {
@@ -1721,33 +1669,38 @@ class JSonConverter
 abstract class PunicConversion
 {
     /**
+     * @var string
+     */
+    protected $type;
+
+    /**
      * @var string[]
      */
     protected $roots;
 
     /**
-     * @var string|null
+     * @var string
      */
-    protected $saveAs;
+    protected $identifier;
 
     /**
-     * @param string[] $roots
-     * @param string|null $saveAs
+     * @param string      $type
+     * @param string[]    $roots
+     * @param string|null $identifier
      */
-    public function __construct(array $roots, $saveAs = null)
+    public function __construct($type, array $roots, $identifier = null)
     {
+        $this->type = $type;
         $this->roots = $roots;
-        $this->saveAs = $saveAs;
+        $this->identifier = $identifier ? $identifier : end($roots);
     }
 
     /**
-     * @param string $fallbackTo
-     *
      * @return string
      */
-    public function getSaveAs($fallbackTo)
+    public function getIdentifier()
     {
-        return $this->saveAs === null ? $fallbackTo : $this->saveAs;
+        return $this->identifier;
     }
 
     /**
@@ -1800,6 +1753,92 @@ abstract class PunicConversion
         if (count($extraKeys) > 0) {
             throw new Exception('Unexpected node keys: '.implode(', ', $extraKeys));
         }
+    }
+
+    /**
+     * @param string $sourceFile
+     *
+     * @return array
+     */
+    protected function loadJson($sourceFile)
+    {
+        $json = @file_get_contents($sourceFile);
+        if ($json === false) {
+            throw new Exception("Failed to read from file $sourceFile");
+        }
+
+        $data = @json_decode($json, true);
+        if ($data === null) {
+            throw new Exception("Failed to decode JSON data");
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param string $sourceFile
+     * @param array  $fallbackData
+     *
+     * @return array
+     */
+    protected function loadXml($sourceFile, $fallbackData = array())
+    {
+        $doc = new DOMDocument();
+        $doc->load($sourceFile);
+
+        return $this->convertDomElement($doc->documentElement, '', $fallbackData);
+    }
+
+    /**
+     * @param DOMElement $element
+     * @param string     $path
+     * @param array      $attributes
+     * @param array      $fallbackData
+     *
+     * @return array
+     */
+    protected function convertDomElement(DOMElement $element, $path, $fallbackData = null)
+    {
+        $paths = $this->getPaths();
+        $path .= '/'.$element->tagName;
+
+        $data = $fallbackData ? $fallbackData : array();
+
+        foreach ($element->childNodes as $childNode) {
+            switch ($childNode->nodeType) {
+                case XML_ELEMENT_NODE:
+                    $childPath = $path.'/'.$childNode->tagName;
+                    if (isset($paths[$childPath])) {
+                        $childAttributes = array();
+                        $values = array();
+                        foreach ($childNode->attributes as $attribute) {
+                            if (in_array($attribute->name, $paths[$childPath])) {
+                                $childAttributes[] = $attribute->value;
+                            } else {
+                                $values['_'.$attribute->name] = $attribute->value;
+                            }
+                        }
+
+                        $key = implode('-', $childAttributes);
+                        if ($childNode->childNodes->length === 0) {
+                            $data[$childNode->tagName][$key] = $values;
+                        } else {
+                            $childFallbackData = isset($fallbackData[$childNode->tagName][$key]) ? $fallbackData[$childNode->tagName][$key] : array();
+                            $data[$childNode->tagName][$key] = $this->convertDomElement($childNode, $path, $childFallbackData);
+                        }
+                    } else {
+                        $childFallbackData = isset($fallbackData[$childNode->tagName]) ? $fallbackData[$childNode->tagName] : array();
+                        $data[$childNode->tagName] = $this->convertDomElement($childNode, $path, $childFallbackData);
+                    }
+                    break;
+                case XML_TEXT_NODE:
+                    if ($element->childNodes->length === 1) {
+                        return $childNode->wholeText;
+                    }
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -1877,6 +1916,53 @@ abstract class PunicConversion
 abstract class LocalePunicConversion extends PunicConversion
 {
     /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return array
+     */
+    public function convert(SourceData $sourceData, $localeID)
+    {
+        $data = $this->load($sourceData, $localeID);
+        $data = $this->process($data, $localeID);
+        return $data;
+    }
+
+    /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData, $localeID)
+    {
+        $file = $sourceData->getJsonDirectoryForLocale($localeID).'/'.$this->getIdentifier().'.json';
+
+        if (is_file($file)) {
+            return $file;
+        }
+
+        $fallbackFile = $sourceData->getJsonDirectoryForLocale('en').'/'.$this->getIdentifier().'.json';
+        if (is_file($fallbackFile)) {
+            return $fallbackFile;
+        }
+
+        throw new Exception("File not found: $file");
+    }
+
+    /**
+     * @param string $json
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData, $localeID)
+    {
+        $sourceFile = $this->getSourceFile($sourceData, $localeID);
+
+        return $this->loadJson($sourceFile);
+    }
+
+    /**
      * @param string $localeID
      *
      * @return string[]
@@ -1884,7 +1970,7 @@ abstract class LocalePunicConversion extends PunicConversion
     protected function getRoots($localeID)
     {
         return array_merge(
-            array('main', str_replace('_', '-', $localeID)),
+            array($this->type, str_replace('_', '-', $localeID)),
             $this->roots
         );
     }
@@ -1897,7 +1983,7 @@ abstract class LocalePunicConversion extends PunicConversion
     protected function getUnsetByPath($localeID)
     {
         return array(
-            '/main/'.str_replace('_', '-', $localeID) => array('identity'),
+            '/'.$this->type.'/'.str_replace('_', '-', $localeID) => array('identity'),
         );
 
         return $result;
@@ -1919,12 +2005,9 @@ abstract class LocalePunicConversion extends PunicConversion
 
 class NoopLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create(array $roots, $saveAs = null)
+    public function __construct($roots, $identitifier = null)
     {
-        return new static($roots, $saveAs);
+        parent::__construct('main', $roots, $identitifier);
     }
 
     /**
@@ -1941,12 +2024,9 @@ class NoopLocalePunicConversion extends LocalePunicConversion
 
 class LanguagesLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('localeDisplayNames', 'languages'));
+        parent::__construct('main', array('localeDisplayNames', 'languages'));
     }
 
     /**
@@ -1968,12 +2048,20 @@ class LanguagesLocalePunicConversion extends LocalePunicConversion
 
 class CalendarLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('dates', 'calendars', 'gregorian'));
+        parent::__construct('main', array('dates', 'calendars', 'gregorian'), 'calendar');
+    }
+
+    /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData, $localeID)
+    {
+        return $sourceData->getJsonDirectoryForLocale($localeID).'/ca-gregorian.json';
     }
 
     /**
@@ -2002,12 +2090,9 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
 }
 class TimeZoneNamesLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('dates', 'timeZoneNames'));
+        parent::__construct('main', array('dates', 'timeZoneNames'));
     }
 
     /**
@@ -2044,12 +2129,9 @@ class TimeZoneNamesLocalePunicConversion extends LocalePunicConversion
 
 class ListPatternsLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('listPatterns'));
+        parent::__construct('main', array('listPatterns'));
     }
 
     /**
@@ -2079,12 +2161,9 @@ class ListPatternsLocalePunicConversion extends LocalePunicConversion
 
 class UnitsLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('units'));
+        parent::__construct('main', array('units'));
     }
 
     /**
@@ -2180,12 +2259,9 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
 
 class LocaleDisplayNamesLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('localeDisplayNames'));
+        parent::__construct('main', array('localeDisplayNames'));
     }
 
     /**
@@ -2216,12 +2292,9 @@ class LocaleDisplayNamesLocalePunicConversion extends LocalePunicConversion
 
 class NumbersLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('numbers'));
+        parent::__construct('main', array('numbers'));
     }
 
     /**
@@ -2308,12 +2381,9 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
 
 class CurrenciesLocalePunicConversion extends LocalePunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('numbers', 'currencies'));
+        parent::__construct('main', array('numbers', 'currencies'));
     }
 
     /**
@@ -2405,8 +2475,93 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
     }
 }
 
+class SubdivisionsLocalePunicConversion extends LocalePunicConversion
+{
+    public function __construct()
+    {
+        parent::__construct('subdivisions', array('localeDisplayNames', 'subdivisions', 'subdivision'), 'subdivisions');
+    }
+
+    /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData, $localeID)
+    {
+        return $sourceData->getSvnDirectory().'/common/subdivisions/'.$localeID.'.xml';
+    }
+
+    /**
+     * @return array
+     */
+    protected function getPaths()
+    {
+        return array('/ldml/localeDisplayNames/subdivisions/subdivision' => array('type'));
+    }
+
+    /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData, $localeID)
+    {
+        $locale = LocaleIdentifier::fromString($localeID);
+        $localeIDs = array_merge(array($localeID), $locale->getParentLocaleIdentifiers(), array('en'));
+
+        $key = str_replace('_', '-', $localeID);
+        $data[$this->type][$key] = array();
+
+        foreach (array_reverse($localeIDs) as $localeID) {
+            $sourceFile = $this->getSourceFile($sourceData, $localeID);
+            if (is_file($sourceFile)) {
+                $data[$this->type][$key] = $this->loadXml($sourceFile, $data[$this->type][$key]);
+            }
+        }
+
+        return $data;
+    }
+}
+
 abstract class SupplementalPunicConversion extends PunicConversion
 {
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return array
+     */
+    public function convert(SourceData $sourceData)
+    {
+        $data = $this->load($sourceData);
+        $data = $this->process($data);
+        return $data;
+    }
+
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData)
+    {
+        return $sourceData->getJsonDirectoryForGeneric('supplemental').'/'.$this->getIdentifier().'.json';
+    }
+
+    /**
+     * @param string $json
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData)
+    {
+        $sourceFile = $this->getSourceFile($sourceData);
+
+        return $this->loadJson($sourceFile);
+    }
+
     /**
      * @return string[]
      */
@@ -2438,12 +2593,9 @@ abstract class SupplementalPunicConversion extends PunicConversion
 
 class NoopSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create(array $roots, $saveAs = null)
+    public function __construct(array $roots, $identifier = null)
     {
-        return new static($roots, $saveAs);
+        parent::__construct('supplemental', $roots, $identifier);
     }
 
     /**
@@ -2459,12 +2611,9 @@ class NoopSupplementalPunicConversion extends SupplementalPunicConversion
 
 class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'telephoneCodeData'));
+        parent::__construct('supplemental', array('supplemental', 'telephoneCodeData'));
     }
 
     /**
@@ -2502,12 +2651,9 @@ class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConv
 
 class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'territoryInfo'));
+        parent::__construct('supplemental', array('supplemental', 'territoryInfo'));
     }
 
     /**
@@ -2628,12 +2774,9 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
 
 class TimeDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'timeData'));
+        parent::__construct('supplemental', array('supplemental', 'timeData'));
     }
 
     /**
@@ -2658,12 +2801,9 @@ class TimeDataSupplementalPunicConversion extends SupplementalPunicConversion
 
 class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'dayPeriodRuleSet'));
+        parent::__construct('supplemental', array('supplemental', 'dayPeriodRuleSet'), 'dayPeriods');
     }
 
     /**
@@ -2702,12 +2842,9 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
 
 class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'weekData'));
+        parent::__construct('supplemental', array('supplemental', 'weekData'));
     }
 
     /**
@@ -2743,12 +2880,9 @@ class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
 
 class TerritoryContainmentSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'territoryContainment'));
+        parent::__construct('supplemental', array('supplemental', 'territoryContainment'));
     }
 
     /**
@@ -2778,12 +2912,9 @@ class TerritoryContainmentSupplementalPunicConversion extends SupplementalPunicC
 
 class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'metaZones'));
+        parent::__construct('supplemental', array('supplemental', 'metaZones'));
     }
 
     /**
@@ -2877,12 +3008,9 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
 
 class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'plurals-type-cardinal'));
+        parent::__construct('supplemental', array('supplemental', 'plurals-type-cardinal'), 'plurals');
     }
 
     /**
@@ -3018,12 +3146,9 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
 
 class MeasurementDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'measurementData'));
+        parent::__construct('supplemental', array('supplemental', 'measurementData'));
     }
 
     /**
@@ -3047,12 +3172,9 @@ class MeasurementDataSupplementalPunicConversion extends SupplementalPunicConver
 
 class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    /**
-     * @return static
-     */
-    public static function create()
+    public function __construct()
     {
-        return new static(array('supplemental', 'currencyData'));
+        parent::__construct('main', array('supplemental', 'currencyData'));
     }
 
     /**
@@ -3203,6 +3325,61 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
         }
         $data = $final;
 
+        return $data;
+    }
+}
+
+class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversion
+{
+    public function __construct()
+    {
+        parent::__construct('supplemental', array('supplemental', 'subdivisionContainment', 'subgroup'), 'subdivisionContainment');
+    }
+
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData)
+    {
+        return $sourceData->getSvnDirectory().'/common/supplemental/subdivisions.xml';
+    }
+
+    /**
+     * @return array
+     */
+    protected function getPaths()
+    {
+        return array('/supplementalData/subdivisionContainment/subgroup' => array('type'));
+    }
+
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData)
+    {
+        $sourceFile = $this->getSourceFile($sourceData);
+
+        $data['supplemental'] = $this->loadXml($sourceFile);
+
+        return $data;
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return array
+     */
+    public function process(array $data)
+    {
+        $data = parent::process($data);
+        foreach (array_keys($data) as $key) {
+            $data[$key]['contains'] = explode(' ', $data[$key]['_contains']);
+            unset($data[$key]['_contains']);
+        }
         return $data;
     }
 }
