@@ -484,11 +484,10 @@ class BuildOptions
 
         return $result;
     }
-    
-    
-    public static function getLocaleFiles()
+
+    public static function getLocaleFiles($cldrVersion)
     {
-        return array(
+        $result = array(
             'calendar.php',
             'currencies.php',
             'dateFields.php',
@@ -498,16 +497,21 @@ class BuildOptions
             'localeDisplayNames.php',
             'measurementSystemNames.php',
             'numbers.php',
-            'subdivisions.php',
             'territories.php',
             'timeZoneNames.php',
             'units.php',
         );
+        if (version_compare($cldrVersion, '32') >= 0) {
+            $result[] = 'subdivisions.php';
+        }
+
+        sort($result);
+        return $result;
     }
     
-    public static function getSupplementalFiles()
+    public static function getSupplementalFiles($cldrVersion)
     {
-        return array(
+        $result = array(
             'currencyData.php',
             'dayPeriods.php',
             'likelySubtags.php',
@@ -516,13 +520,18 @@ class BuildOptions
             'parentLocales.php',
             'plurals.php',
             'primaryZones.php',
-            'subdivisionContainment.php',
             'telephoneCodeData.php',
             'territoryContainment.php',
             'territoryInfo.php',
             'timeData.php',
             'weekData.php',
         );
+        if (version_compare($cldrVersion, '32') >= 0) {
+            $result[] = 'subdivisionContainment.php';
+        }
+
+        sort($result);
+        return $result;
     }
 
     /**
@@ -1429,10 +1438,12 @@ class CldrConverter
                 new NoopLocalePunicConversion(array('layout', 'orientation'), 'layout'),
                 new NoopLocalePunicConversion(array('localeDisplayNames', 'measurementSystemNames')),
                 new CurrenciesLocalePunicConversion(),
-                new SubdivisionsLocalePunicConversion(),
             );
+            if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+                $converters[] = new SubdivisionsLocalePunicConversion();
+            }
 
-            foreach ($converters as $identifier => $converter) {
+            foreach ($converters as $converter) {
                 $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
                 $data = $converter->convert($this->sourceData, $localeID);
                 $this->phpWriter->save($data, $destinationFile);
@@ -1472,8 +1483,10 @@ class CldrConverter
             new PluralsSupplementalPunicConversion(),
             new MeasurementDataSupplementalPunicConversion(),
             new CurrencyDataSupplementalPunicConversion(),
-            new SubdivisionsSupplementalPunicConversion(),
         );
+        if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+            $converters[] = new SubdivisionsSupplementalPunicConversion();
+        }
 
         foreach ($converters as $converter) {
             $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
@@ -3483,8 +3496,8 @@ class StateFile
         }
         $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'][$cldrVersion] = [
             'locales' => $locales,
-            'localeFiles' => BuildOptions::getLocaleFiles(),
-            'supplementalFiles' => BuildOptions::getSupplementalFiles(),
+            'localeFiles' => BuildOptions::getLocaleFiles($cldrVersion),
+            'supplementalFiles' => BuildOptions::getSupplementalFiles($cldrVersion),
         ];
         $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
