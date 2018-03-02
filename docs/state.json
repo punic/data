@@ -1519,6 +1519,7 @@
                         "territoryContainment.php",
                         "territoryInfo.php",
                         "timeData.php",
+                        "timeZones.php",
                         "weekData.php"
                     ]
                 }

@@ -77,29 +77,28 @@ try {
     $converter = new CldrConverter($fileUtils, $sourceData, $phpWriter, $options);
     $numLocales = count($locales);
     $currentLocaleIndex = 0;
+    $localeFiles = array();
     foreach ($locales as $localeID) {
         echo 'Processing ', $localeID, ' (', $currentLocaleIndex + 1, '/', $numLocales, "):\n";
         $destDir = $options->getOutputDirectory().'/'.str_replace('_', '-', $localeID);
-        if (is_dir($destDir)) {
-            echo "  - destination directory exists: SKIPPED\n";
-        } else {
-            if (!$sourceData->isJsonLocalePresent($localeID)) {
-                echo '  - building source JSON data... ';
-                $sourceData->ensureJsonLocale($localeID);
-                echo "done.\n";
-            }
-            echo '  - processing...';
-            $converter->convertLocale($localeID, $destDir);
+        if (!$sourceData->isJsonLocalePresent($localeID)) {
+            echo '  - building source JSON data... ';
+            $sourceData->ensureJsonLocale($localeID);
             echo "done.\n";
         }
+        echo '  - processing...';
+        $localeFiles = $converter->convertLocale($localeID, $destDir);
+        echo "done.\n";
         $currentLocaleIndex++;
     }
+
     echo 'Processing supplemental files... ';
-    $converter->convertSupplemental($options->getOutputDirectory());
+    $supplementalFiles = $converter->convertSupplemental($options->getOutputDirectory());
     echo "done.\n";
+
     if ($options->getUpdateStateFile()) {
         echo 'Writing state file... ';
-        StateFile::write($options->getStateFile(), $options->getCLDRVersion(), $locales);
+        StateFile::write($options->getStateFile(), $options->getCLDRVersion(), $locales, $localeFiles, $supplementalFiles);
         echo "done.\n";
     }
     exit(0);
@@ -482,55 +481,6 @@ class BuildOptions
             $result->parseLocaleOptions($localeOptions);
         }
 
-        return $result;
-    }
-
-    public static function getLocaleFiles($cldrVersion)
-    {
-        $result = array(
-            'calendar.php',
-            'currencies.php',
-            'dateFields.php',
-            'languages.php',
-            'layout.php',
-            'listPatterns.php',
-            'localeDisplayNames.php',
-            'measurementSystemNames.php',
-            'numbers.php',
-            'territories.php',
-            'timeZoneNames.php',
-            'units.php',
-        );
-        if (version_compare($cldrVersion, '32') >= 0) {
-            $result[] = 'subdivisions.php';
-        }
-
-        sort($result);
-        return $result;
-    }
-    
-    public static function getSupplementalFiles($cldrVersion)
-    {
-        $result = array(
-            'currencyData.php',
-            'dayPeriods.php',
-            'likelySubtags.php',
-            'measurementData.php',
-            'metaZones.php',
-            'parentLocales.php',
-            'plurals.php',
-            'primaryZones.php',
-            'telephoneCodeData.php',
-            'territoryContainment.php',
-            'territoryInfo.php',
-            'timeData.php',
-            'weekData.php',
-        );
-        if (version_compare($cldrVersion, '32') >= 0) {
-            $result[] = 'subdivisionContainment.php';
-        }
-
-        sort($result);
         return $result;
     }
 
@@ -1445,19 +1395,24 @@ class CldrConverter
 
             foreach ($converters as $converter) {
                 $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
-                $data = $converter->convert($this->sourceData, $localeID);
-                $this->phpWriter->save($data, $destinationFile);
-            }
+                $destinationFiles[] = $destinationFile;
+                if (!is_file($destinationFile)) {
+                    $data = $converter->convert($this->sourceData, $localeID);
+                    $this->phpWriter->save($data, $destinationFile);
 
-            if ($localeID !== 'en') {
-                $this->copyMissingData_currency(
-                    $destinationDirectory.'/currencies.php'
-                );
+                    if ($converter->getIdentifier() === 'currencies' && $localeID !== 'en') {
+                        $this->copyMissingData_currency(
+                            $destinationDirectory.'/currencies.php'
+                        );
+                    }
+                }
             }
         } catch (Exception $x) {
             $this->fileUtils->deleteFromFilesystem($destinationDirectory);
             throw $x;
         }
+
+        return $destinationFiles;
     }
 
     /**
@@ -1486,10 +1441,13 @@ class CldrConverter
         );
         if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
             $converters[] = new SubdivisionsSupplementalPunicConversion();
+            $converters[] = new TimeZoneSupplementalPunicConversion();
         }
 
+        $destinationFiles = array();
         foreach ($converters as $converter) {
             $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
+            $destinationFiles[] = $destinationFile;
             if (!is_file($destinationFile)) {
                 $data = $converter->convert($this->sourceData);
                 $this->phpWriter->save($data, $destinationFile);
@@ -1499,28 +1457,8 @@ class CldrConverter
         $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
         $this->fileUtils->createDirectory($testDir);
         copy($destinationDirectory.'/plurals.php', $testDir.'/plurals.php');
-    }
 
-    /**
-     * @param array|mixed $node
-     * @param string[] $expectedKeys
-     *
-     * @throws Exception
-     */
-    private function checkExactKeys($node, array $expectedKeys)
-    {
-        if (!is_array($node)) {
-            throw new Exception("$node is not an array");
-        }
-        $nodeKeys = array_keys($node);
-        $missingKeys = array_diff($expectedKeys, $nodeKeys);
-        if (count($missingKeys) > 0) {
-            throw new Exception('Missing these node keys: '.implode(', ', $missingKeys));
-        }
-        $extraKeys = array_diff($nodeKeys, $expectedKeys);
-        if (count($extraKeys) > 0) {
-            throw new Exception('Unexpected node keys: '.implode(', ', $extraKeys));
-        }
+        return $destinationFiles;
     }
 
     /**
@@ -3397,6 +3335,67 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
     }
 }
 
+class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
+{
+    public function __construct()
+    {
+        parent::__construct('supplemental', array('supplemental', 'keyword', 'key', 'type'), 'timeZones');
+    }
+
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData)
+    {
+        return $sourceData->getSvnDirectory().'/common/bcp47/timezone.xml';
+    }
+
+    /**
+     * @return array
+     */
+    protected function getPaths()
+    {
+        return array('/ldmlBCP47/keyword/key/type' => array('alias'));
+    }
+
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData)
+    {
+        $sourceFile = $this->getSourceFile($sourceData);
+
+        $data['supplemental'] = $this->loadXml($sourceFile);
+
+        return $data;
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return array
+     */
+    public function process(array $data)
+    {
+        $zones = parent::process($data);
+        $data = array();
+        foreach (array_keys($zones) as $zone) {
+            $aliases = explode(' ', $zone);
+            if (count($aliases) > 1) {
+                $zoneID = array_shift($aliases);
+                foreach ($aliases as $alias) {
+                    $data['aliases'][$alias] = $zoneID;
+                }
+            }
+        }
+        return $data;
+    }
+}
+
 class StateFile
 {
     /**
@@ -3459,7 +3458,7 @@ class StateFile
         $this->close();
     }
 
-    public static function write($path, $cldrVersion, array $locales)
+    public static function write($path, $cldrVersion, array $locales, array $localeFiles, array $supplementalFiles)
     {
         $me = new static($path);
         $json = '';
@@ -3494,10 +3493,12 @@ class StateFile
         if (!isset($state['formats'][BuildOptions::FORMAT_VERSION]['cldr'])) {
             $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'] = [];
         }
+        sort($localeFiles);
+        sort($supplementalFiles);
         $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'][$cldrVersion] = [
             'locales' => $locales,
-            'localeFiles' => BuildOptions::getLocaleFiles($cldrVersion),
-            'supplementalFiles' => BuildOptions::getSupplementalFiles($cldrVersion),
+            'localeFiles' => array_map('basename', $localeFiles),
+            'supplementalFiles' => array_map('basename', $supplementalFiles),
         ];
         $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
