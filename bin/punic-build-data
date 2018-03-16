@@ -1486,6 +1486,7 @@ class CldrConverter
         );
         if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
             $converters[] = new SubdivisionsSupplementalPunicConversion();
+            $converters[] = new CodeMappingsSupplementalPunicConversion();
         }
 
         foreach ($converters as $converter) {
@@ -3337,6 +3338,46 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
             });
         }
         $data = $final;
+
+        return $data;
+    }
+}
+
+class CodeMappingsSupplementalPunicConversion extends SupplementalPunicConversion
+{
+    public function __construct()
+    {
+        parent::__construct('supplemental', array('supplemental', 'codeMappings'));
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return array
+     */
+    public function process(array $data)
+    {
+        $mappings = parent::process($data);
+
+        $data = array();
+        foreach ($mappings as $key => $mapping) {
+            if (strlen($key) === 2) {
+                $type = 'territories';
+            } else {
+                $type = 'currencies';
+            }
+            foreach ($mapping as $name => $value) {
+                if ($name[0] === '_') {
+                    if ($name === '_internet') {
+                        $value = explode(' ', $value);
+                    }
+                    if ($type === 'currencies' && $name === '_numeric') {
+                        $value = (int) $value;
+                    }
+                    $data[$type][$key][substr($name, 1)] = $value;
+                }
+            }
+        }
 
         return $data;
     }
