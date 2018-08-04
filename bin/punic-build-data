@@ -2323,27 +2323,45 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
         $numberSystems = array();
         foreach ($data as $key => $value) {
             if (preg_match('/^([a-z]+)-numberSystem-([a-z]+)$/i', $key, $m)) {
-                $keyChunk = $m[1];
-                $ns = $m[2];
-                if (!array_key_exists($ns, $numberSystems)) {
-                    $numberSystems[$ns] = array();
-                }
-                if (is_array($value)) {
-                    $unitPattern = null;
-                    foreach ($value as $k2 => $v2) {
-                        if (preg_match('/^unitPattern-(.+)$/i', $k2, $m)) {
-                            if ($unitPattern === null) {
-                                $unitPattern = array();
-                            }
-                            $unitPattern[$m[1]] = $this->toPhpSprintf($v2);
-                            unset($value[$k2]);
+                $keyPrefix = $m[1];
+                switch ($keyPrefix) {
+                    case 'symbols':
+                        $final['symbols'] = $value;
+                        break;
+                    case 'currencyFormats':
+                    case 'percentFormats':
+                        $unitPattern = null;
+                        foreach ($value as $k2 => $v2) {
+                            if (preg_match('/^unitPattern-(.+)$/i', $k2, $m)) {
+                                if ($unitPattern === null) {
+                                    $unitPattern = array();
+                                }
+                                $unitPattern[$m[1]] = $this->toPhpSprintf($v2);
+                            } elseif (in_array($k2, array('standard', 'accounting'))) {
+                                $formats = explode(';', $v2);
+                                if (count($formats) === 1) {
+                                    $formats[] = $final['symbols']['minusSign'] . $formats[0];
+                                }
+                                foreach ($formats as $i => $format) {
+                                    $format = preg_replace('/[0-9@#.,E+]+/', '%1$s', str_replace('%', '%%', $format));
+                                    $format = str_replace(array('%%', '¤'), '%2$s', $format);
+                                    $final[$keyPrefix][$k2][$i === 0 ? 'positive' : 'negative'] = $format;
+                                }
+                             } elseif ($k2 === 'currencySpacing') {
+                                foreach ($v2 as $k3 => $v3) {
+                                    $final[$keyPrefix]['currencySpacing'][$k3] = array(
+                                        'currency' => $this->toRegularExpression('currency', $k3, $v3['currencyMatch']),
+                                        'surrounding' => $this->toRegularExpression('surrounding', $k3, $v3['surroundingMatch']),
+                                        'insertBetween' => $v3['insertBetween'],
+                                    );
+                                }
+                             }
                         }
-                    }
-                    if ($unitPattern !== null) {
-                        $value['unitPattern'] = $unitPattern;
-                    }
+                        if ($unitPattern !== null) {
+                            $final[$keyPrefix]['unitPattern'] = $unitPattern;
+                        }
+                        break;
                 }
-                $numberSystems[$ns][$keyChunk] = $value;
             } else {
                 switch ($key) {
                     case 'defaultNumberingSystem':
@@ -2361,34 +2379,36 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
                 }
             }
         }
-        if (!array_key_exists('latn', $numberSystems)) {
-            throw new Exception("Missing 'latn'");
-        }
-        foreach ($numberSystems['latn'] as $key => $value) {
-            if (array_key_exists($key, $final)) {
-                throw new Exception("Duplicated node '$key'");
-            }
-            // $final[$key] = $value; REMOVED ADVANCED LOCALIZATION
-            if ($key === 'symbols') { // REMOVED ADVANCED LOCALIZATION
-                $final[$key] = $value;
-            }
-        }
         $data = $final;
-        $symbols = array_key_exists('symbols', $data) ? $data['symbols'] : null;
-        if (empty($symbols) || (!is_array($symbols))) {
-            throw new Exception('Missing symbols');
-        }
-        foreach (array_keys($data) as $key) {
-            if (is_array($data[$key]) && preg_match('/\\w+Formats$/', $key) && array_key_exists('standard', $data[$key])) {
-                $format = $data[$key]['standard'];
-                $data[$key]['standard'] = array('format' => $format);
-                foreach ($this->numberFormatToRegularExpressions($symbols, $format) as $rxKey => $rx) {
-                    $data[$key]['standard']["rx$rxKey"] = $rx;
-                }
-            }
-        }
 
         return $data;
+    }
+
+    private function toRegularExpression($type, $position, $match)
+    {
+        switch ($match) {
+            case '[:digit:]':
+                $regexp = '\pN';
+                break;
+            case '[:letter:]':
+                $regexp = '\pL';
+                break;
+            case '[:^S:]':
+                $regexp = '[^\pS]';
+                break;
+            default:
+                throw new Exception("Unsupported match: $match");
+        }
+
+        if ($type === 'currency' && $position === 'beforeCurrency') {
+            $regexp = '^' . $regexp;
+        } else {
+            $regexp .= '$';
+        }
+
+        $regexp = '/' . $regexp . '/u';
+
+        return $regexp;
     }
 }
 
