@@ -63,6 +63,11 @@ try {
         $sourceData->ensureJsonGeneric('segments');
         echo "done.\n";
     }
+    if (!$sourceData->isJsonGenericPresent('rbnf')) {
+        echo 'Creating the rbnf JSON files... '; 
+        $sourceData->ensureJsonGeneric('rbnf');
+        echo "done.\n";
+    }
     if (is_dir($options->getOutputDirectory()) && $options->getResetPunicData()) {
         echo 'Clearing current Punic data... ';
         $fileUtils->deleteFromFilesystem($options->getOutputDirectory(), true);
@@ -1097,6 +1102,7 @@ class SourceData
                 $cmd .= ' -jar '.argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 switch ($genericID) {
+                    case 'rbnf':
                     case 'supplemental':
                     case 'segments':
                         $cmd .= ' -o true'; // (true|false) Whether to write out the 'other' section, which contains any unmatched paths
@@ -1382,6 +1388,7 @@ class CldrConverter
                 new NoopLocalePunicConversion(array('layout', 'orientation'), 'layout'),
                 new NoopLocalePunicConversion(array('localeDisplayNames', 'measurementSystemNames')),
                 new CurrenciesLocalePunicConversion(),
+                new RbnfLocalePunicConversion(),
             );
             if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
                 $converters[] = new SubdivisionsLocalePunicConversion();
@@ -1429,7 +1436,8 @@ class CldrConverter
             new TerritoryContainmentSupplementalPunicConversion(),
             new MetaZonesSupplementalPunicConversion(),
             new NoopSupplementalPunicConversion(array('supplemental', 'primaryZones')),
-            new PluralsSupplementalPunicConversion(),
+            new PluralsSupplementalPunicConversion('cardinal', 'plurals'),
+            new PluralsSupplementalPunicConversion('ordinal', 'ordinals'),
             new MeasurementDataSupplementalPunicConversion(),
             new CurrencyDataSupplementalPunicConversion(),
         );
@@ -2494,6 +2502,105 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
     }
 }
 
+class RbnfLocalePunicConversion extends LocalePunicConversion
+{
+    public function __construct()
+    {
+        parent::__construct('rbnf', array('rbnf', 'rbnf'), 'rbnf');
+    }
+    /**
+     * @param SourceData $sourceData
+     *
+     * @return string
+     */
+    protected function getSourceFile(SourceData $sourceData, $localeID)
+    {
+        return $sourceData->getJsonDirectoryForGeneric('rbnf').'/'.$localeID.'.json';
+    }
+    /**
+     * @param SourceData $sourceData
+     * @param string     $localeID
+     *
+     * @return array
+     */
+    protected function load(SourceData $sourceData, $localeID)
+    {
+        $locale = LocaleIdentifier::fromString($localeID);
+        $localeIDs = array_merge(array($localeID), $locale->getParentLocaleIdentifiers());
+        $data = array();
+        foreach ($localeIDs as $localeID) {
+            $file = $this->getSourceFile($sourceData, $localeID);
+            if (file_exists($file)) {
+                $parent = parent::load($sourceData, $localeID);
+                foreach ($parent['rbnf']['rbnf'] as $group => $rulesetGrouping) {
+                    if (!isset($data['rbnf']['rbnf'][$group])) {
+                        $data['rbnf']['rbnf'][$group] = array();
+                    }
+                    $data['rbnf']['rbnf'][$group] += $rulesetGrouping;
+                }
+            }
+        }
+        return $data;
+    }
+    /**
+     * @param string $localeID
+     *
+     * @return string[]
+     */
+    protected function getRoots($localeID)
+    {
+        return $this->roots;
+    }
+    /**
+     * @param string $localeID
+     *
+     * @return array
+     */
+    protected function getUnsetByPath($localeID)
+    {
+        return array(
+            '/rbnf' => array('identity'),
+        );
+    }
+    /**
+     * @param array $data
+     * @param string $localeID
+     *
+     * @return array
+     */
+    public function process(array $data, $localeID)
+    {
+        $data = parent::process($data, $localeID);
+        $rulesets = array();
+        foreach ($data as $group => $rulesetGrouping) {
+            if ($group === 'NumberingSystemRules' && $localeID !== 'root') {
+                continue;
+            }
+            foreach ($rulesetGrouping as $type => $ruleset) {
+                $type = substr($type, 1);
+                foreach ($ruleset as $descriptor => $rule) {
+                    if ($rule[0] === "'") {
+                        $rule = substr($rule, 1);
+                    }
+                    $rule = rtrim($rule, ';');
+                    $parts = explode('/', $descriptor);
+                    $base = $parts[0];
+                    if (is_numeric($base)) {
+                        $rulesets[$type]['integer'][$base]['rule'] = $rule;
+                        if (count($parts) > 1) {
+                            $rulesets[$type]['integer'][$base]['radix'] = (int)$parts[1];
+                        }
+                    } else {
+                        $rulesets[$type][$base]['rule'] = $rule;
+                    }
+                }
+            }
+        }
+        $data = $rulesets;
+        return $data;
+    }
+}
+
 abstract class SupplementalPunicConversion extends PunicConversion
 {
     /**
@@ -2976,9 +3083,9 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
 
 class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
 {
-    public function __construct()
+    public function __construct($type, $identifier)
     {
-        parent::__construct('supplemental', array('supplemental', 'plurals-type-cardinal'), 'plurals');
+        parent::__construct('supplemental', array('supplemental', 'plurals-type-'.$type), $identifier);
     }
 
     /**
