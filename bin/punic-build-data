@@ -170,7 +170,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '32.0.1';
+    const DEFAULT_CLDR_VERSION = '33.1';
 
     /**
      * Placeholder for all locales.
