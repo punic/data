@@ -127,18 +127,12 @@ function checkEnvironment()
     @exec('svn --version 2>&1', $output, $rc);
     if ($rc !== 0) {
         throw new UserMessageException('Missing SVN command');
-        if (!is_dir($dir)) {
-            $rc = -1;
-        }
     }
     $output = array();
     $rc = null;
     @exec('java -version 2>&1', $output, $rc);
     if ($rc !== 0) {
         throw new UserMessageException('Missing Java JDK');
-        if (!is_dir($dir)) {
-            $rc = -1;
-        }
     }
     $output = array();
     $rc = null;
@@ -382,7 +376,6 @@ class BuildOptions
     {
         $result = new static();
         $localeOptions = array();
-        $substractLocales = array();
         $n = count($options);
         for ($i = 0; $i < $n; ++$i) {
             if (preg_match('/^(--[^=]+)=(.*)$/', $options[$i], $matches)) {
@@ -1374,6 +1367,7 @@ class CldrConverter
     {
         $this->fileUtils->createDirectory($destinationDirectory);
 
+        $destinationFiles = array();
         try {
             $converters = array(
                 new CalendarLocalePunicConversion(),
@@ -1937,8 +1931,6 @@ abstract class LocalePunicConversion extends PunicConversion
         return array(
             '/'.$this->type.'/'.str_replace('_', '-', $localeID) => array('identity'),
         );
-
-        return $result;
     }
 
     /**
@@ -2259,7 +2251,6 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
     {
         $data = parent::process($data, $localeID);
         $final = array();
-        $numberSystems = array();
         foreach ($data as $key => $value) {
             if (preg_match('/^([a-z]+)-numberSystem-([a-z]+)$/i', $key, $m)) {
                 $keyPrefix = $m[1];
@@ -2486,7 +2477,11 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
         $localeIDs = array_merge(array($localeID), $locale->getParentLocaleIdentifiers(), array('en'));
 
         $key = str_replace('_', '-', $localeID);
-        $data[$this->type][$key] = array();
+        $data = array(
+            $this->type => array(
+                $key => array(),
+            )
+        );
 
         foreach (array_reverse($localeIDs) as $localeID) {
             $sourceFile = $this->getSourceFile($sourceData, $localeID);
@@ -2663,7 +2658,7 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
                         break;
                     case 'languagePopulation':
                         if (!is_array($territoryInfoData)) {
-                            throw new Exception("Invalid node: $infoIDis not an array");
+                            throw new Exception("Invalid node: $territoryInfoID is not an array");
                         }
                         $finalTerritoryData['languages'] = array();
                         foreach ($territoryInfoData as $languageID => $languageInfoList) {
@@ -3050,7 +3045,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                             '/'.$pre.'(([nivfwft]( % \\d+)?) (==|!=) ((\\d+)(((\\.\\.)|,)+(\\d+))+))/',
                             $v,
                             $m
-                            )) {
+                        )) {
                             $found = $m[1];
                             $leftyPart = $m[2]; // eg 'n % 10'
                                 $operator = $m[4]; // eg '=='
@@ -3376,7 +3371,9 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
     {
         $sourceFile = $this->getSourceFile($sourceData);
 
-        $data['supplemental'] = $this->loadXml($sourceFile);
+        $data = array(
+            'supplemental' => $this->loadXml($sourceFile),
+        );
 
         return $data;
     }
@@ -3431,7 +3428,9 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
     {
         $sourceFile = $this->getSourceFile($sourceData);
 
-        $data['supplemental'] = $this->loadXml($sourceFile);
+        $data = array(
+            'supplemental' => $this->loadXml($sourceFile),
+        );
 
         return $data;
     }
