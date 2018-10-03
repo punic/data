@@ -2347,6 +2347,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
             } else {
                 switch ($key) {
                     case 'defaultNumberingSystem':
+                    case 'defaultNumberingSystem-alt-latn':
                     case 'otherNumberingSystems':
                     case 'minimalPairs':
                         break;
