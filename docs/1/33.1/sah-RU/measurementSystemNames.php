@@ -1,3 +1,1 @@
-<?php
-// This file is auto-generated. Do not edit!
-return array('metric'=>'Мэтриичэскэй','UK'=>'Ааҥыллыы','US'=>'Эмиэрикэлии');
+../../31/sah/measurementSystemNames.php

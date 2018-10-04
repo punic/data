@@ -1,3 +1,1 @@
-<?php
-// This file is auto-generated. Do not edit!
-return array('metric'=>'Metrik','UK'=>'Birleşen Patyşalyk','US'=>'ABŞ');
+../../32.0.1/tk/measurementSystemNames.php

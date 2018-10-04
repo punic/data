@@ -1,3 +1,1 @@
-<?php
-// This file is auto-generated. Do not edit!
-return array('metric'=>'مئتری','UK'=>'بئریتانیا گأپ','US'=>'ڤولاتیا یأکاگئرته');
+../../31/lrc/measurementSystemNames.php
