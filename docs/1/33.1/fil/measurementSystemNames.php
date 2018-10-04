@@ -1,3 +1,1 @@
-<?php
-// This file is auto-generated. Do not edit!
-return array('metric'=>'Metriko','UK'=>'UK','US'=>'US');
+../../31/fil/measurementSystemNames.php

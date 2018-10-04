@@ -1,3 +1,1 @@
-<?php
-// This file is auto-generated. Do not edit!
-return array('metric'=>'Metreschen Eenheetesystem','UK'=>'Engleschen Eenheetesystem','US'=>'Angloamerikaneschen Eenheetesystem');
+../../31/lb/measurementSystemNames.php
