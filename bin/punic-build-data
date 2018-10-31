@@ -3657,9 +3657,9 @@ class StateFile
     {
         $this->path = $path;
         if (is_file($this->path)) {
-            $this->handle = @fopen($this->path, 'b+r');
+            $this->handle = @fopen($this->path, 'r+b');
         } else {
-            $this->handle = @fopen($this->path, 'b+w');
+            $this->handle = @fopen($this->path, 'w+b');
         }
         if (!is_resource($this->handle)) {
             throw new Exception("Failed to open state file {$this->path}");
