@@ -171,6 +171,13 @@ class BuildOptions
     const DEFAULT_CLDR_VERSION = '33.1';
 
     /**
+     * The default CLDR draft status.
+     *
+     * @var string
+     */
+    const DEFAULT_CLDR_DRAFTSTATUS = CldrDraftStatus::LEVEL_UNCONFIRMED;
+
+    /**
      * Placeholder for all locales.
      *
      * @var string
@@ -192,6 +199,23 @@ class BuildOptions
     public function getCLDRVersion()
     {
         return $this->cldrVersion;
+    }
+
+    /**
+     * The CLDR draft status.
+     *
+     * @var string
+     */
+    protected $cldrDraftStatus;
+
+    /**
+     * Get the CLDR draft status.
+     *
+     * @return string
+     */
+    public function getCLDRDraftStatus()
+    {
+        return $this->cldrDraftStatus;
     }
 
     /**
@@ -361,6 +385,7 @@ class BuildOptions
     protected function __construct()
     {
         $this->cldrVersion = static::DEFAULT_CLDR_VERSION;
+        $this->cldrDraftStatus = static::DEFAULT_CLDR_DRAFTSTATUS;
         $this->resetCLDRData = false;
         $this->resetPunicData = false;
         $this->prettyOutput = false;
@@ -409,6 +434,18 @@ class BuildOptions
                         throw new UserMessageException("Invalid version specified ($nextOption)");
                     }
                     $result->cldrVersion = $nextOption;
+                    break;
+                case '--draft-status':
+                case '-d':
+                    $optionWithValue = true;
+                    if ($nextOption === '') {
+                        throw new UserMessageException('Please specify the draft status');
+                    }
+                    $allDraftStatuses = CldrDraftStatus::getAllStatuses();
+                    if (!in_array($nextOption, $allDraftStatuses, true)) {
+                        throw new UserMessageException("'{$nextOption}' is not a valid CLDR draft status. Valid valus are: " . implode(', ', $allDraftStatuses));
+                    }
+                    $result->cldrDraftStatus = $nextOption;
                     break;
                 case '--locale':
                 case '-l':
@@ -617,6 +654,8 @@ class BuildOptions
         $defaultOutputDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultOutputDirectory('<CLDR-VERSION>'));
         $defaultStateFile = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultStateFile());
         $defaultTemporaryDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultTemporaryDirectory());
+        $cldrDraftStatuses = implode('|', CldrDraftStatus::getAllStatuses());
+        $cldrDefaultDraftStatus = static::DEFAULT_CLDR_DRAFTSTATUS;
         echo <<<EOT
 Available options:
 
@@ -627,8 +666,8 @@ Available options:
     Set the CLDR version to work on (default: $defaultCLDRVersion)
     Examples: 31.d02  30.0.3  30  29.beta.1  25.M1  23.1.d01
 
-  --reset-cldr-data|-c
-    Reset the source CLDR data before the execution
+  --draft-status|-d <$cldrDraftStatuses>
+    The minimum level of the draft status of the CLDR data to be accepted (default: $cldrDefaultDraftStatus)
 
   --reset-punic-data|-r
     Reset the destination Punic data before the execution
@@ -1034,6 +1073,7 @@ class SourceData
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
                 $cmd .= ' -r true'; // (true|false) Whether the output JSON for the main directory should be based on resolved or unresolved data
+                $cmd .= ' -s '.argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
                 $cmd .= ' -m '.argToShell(str_replace('-', '_', $localeID)); // Regular expression to define only specific locales or files to be generated
                 $output = array();
                 $rc = null;
@@ -1101,6 +1141,7 @@ class SourceData
                 $cmd .= ' -DCLDR_GEN_DIR='.argToShell($dir); // where to save the generated files
                 $cmd .= ' -jar '.argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
+                $cmd .= ' -s '.argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
                 switch ($genericID) {
                     case 'rbnf':
                     case 'supplemental':
@@ -3690,5 +3731,51 @@ class StateFile
         $me->delete = false;
         @fflush($me->handle);
         $me->close();
+    }
+}
+
+class CldrDraftStatus
+{
+    /**
+     * Draft status: unconfirmed.
+     *
+     * @var string
+     */
+    const LEVEL_UNCONFIRMED = 'unconfirmed';
+
+    /**
+     * Draft status: provisional.
+     *
+     * @var string
+     */
+    const LEVEL_PROVISIONAL = 'provisional';
+
+    /**
+     * Draft status: contributed.
+     *
+     * @var string
+     */
+    const LEVEL_CONTRIBUTED = 'contributed';
+
+    /**
+     * Draft status: approved.
+     *
+     * @var string
+     */
+    const LEVEL_APPROVED = 'approved';
+
+    /**
+     * Get all the available statuses.
+     *
+     * @return string[]
+     */
+    public static function getAllStatuses()
+    {
+        return [
+            self::LEVEL_UNCONFIRMED,
+            self::LEVEL_PROVISIONAL,
+            self::LEVEL_CONTRIBUTED,
+            self::LEVEL_APPROVED,
+        ];
     }
 }
