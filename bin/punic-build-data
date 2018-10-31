@@ -18,6 +18,7 @@ try {
     checkEnvironment();
     echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
+    echo 'CLDR draft status        : ', $options->getCLDRDraftStatus(), "\n";
     echo 'Processing locales       : ', $options->describeLocales(), "\n";
     echo 'Output directory         : ', str_replace('/', DIRECTORY_SEPARATOR, $options->getOutputDirectory()), "\n";
     echo 'Temporary directory      : ', str_replace('/', DIRECTORY_SEPARATOR, $options->getTemporaryDirectory()), "\n";
@@ -1008,7 +1009,7 @@ class SourceData
      */
     protected function getJsonDirectory()
     {
-        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/json';
+        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/json-' . $this->options->getCLDRDraftStatus();
     }
 
     /**
@@ -1077,7 +1078,7 @@ class SourceData
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
                 $cmd .= ' -r true'; // (true|false) Whether the output JSON for the main directory should be based on resolved or unresolved data
-                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
+                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus()); // The minimum draft status of the output data
                 $cmd .= ' -m ' . argToShell(str_replace('-', '_', $localeID)); // Regular expression to define only specific locales or files to be generated
                 $output = [];
                 $rc = null;
@@ -1145,7 +1146,7 @@ class SourceData
                 $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
-                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
+                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus()); // The minimum draft status of the output data
                 switch ($genericID) {
                     case 'rbnf':
                     case 'supplemental':
