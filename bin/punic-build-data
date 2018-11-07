@@ -1340,6 +1340,8 @@ class PhpWriter
     protected function phpEncode($data, $indent = 0)
     {
         static $tabWidth = 4;
+        static $minInt32 = -2147483648; // -1 * (2 ^ (32 - 1))
+        static $maxInt32 = 2147483647; // 2 ^ (32 - 1) - 1
         $prettyOutput = $this->options->getPrettyOutput();
         $space = $prettyOutput ? ' ' : '';
         if (is_array($data)) {
@@ -1364,6 +1366,8 @@ class PhpWriter
             $result .= ')';
         } elseif (is_string($data)) {
             $result = "'" . addcslashes($data, "'\\") . "'";
+        } elseif (is_int($data) && PHP_INT_SIZE > 4 && ($data < $minInt32 || $data > $maxInt32)) {
+            $result = "'{$data}'";
         } else {
             $result = $data;
         }
