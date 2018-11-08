@@ -92,7 +92,7 @@ try {
             $sourceData->ensureJsonLocale($localeID);
             echo "done.\n";
         }
-        echo '  - processing...';
+        echo '  - processing... ';
         $localeFiles = $converter->convertLocale($localeID, $destDir);
         echo "done.\n";
         $currentLocaleIndex++;
@@ -1337,39 +1337,68 @@ class PhpWriter
         }
     }
 
-    protected function phpEncode($data, $indent = 0)
+    protected function phpEncode($data, $indent = 0, $isArrayKey = false)
     {
         static $tabWidth = 4;
         static $minInt32 = -2147483648; // -1 * (2 ^ (32 - 1))
         static $maxInt32 = 2147483647; // 2 ^ (32 - 1) - 1
         $prettyOutput = $this->options->getPrettyOutput();
         $space = $prettyOutput ? ' ' : '';
-        if (is_array($data)) {
-            $result = 'array(';
-            $index = 0;
-            $assoc = array_keys($data) !== range(0, count($data) - 1);
-            foreach ($data as $key => $value) {
-                if ($index++ !== 0) {
-                    $result .= ',';
+        $type = gettype($data);
+        switch (gettype($data)) {
+            case 'boolean':
+                $result = $data ? 'true' : 'false';
+                break;
+            case 'string':
+                $result = "'" . addcslashes($data, "'\\") . "'";
+                break;
+            case 'NULL':
+                $result = 'null';
+                break;
+            case 'double':
+                $string = (string) $data;
+                if ($isArrayKey) {
+                    $integer = (int) $data;
+                    if ($integer === $string && (PHP_INT_SIZE <= 4 || ($integer >= $minInt32 && $integer <= $maxInt32))) {
+                        $result = $string;
+                    } else {
+                        $result = "'$string'";
+                    }
+                } else {
+                    $result = $string;
+                }
+                break;
+            case 'integer':
+                $string = (string) $data;
+                if ($isArrayKey && PHP_INT_SIZE > 4 && ($data < $minInt32 || $data > $maxInt32)) {
+                    $result = "'{$string}'";
+                } else {
+                    $result = $string;
+                }
+                break;
+            case 'array':
+                $result = 'array(';
+                $index = 0;
+                $assoc = array_keys($data) !== range(0, count($data) - 1);
+                foreach ($data as $key => $value) {
+                    if ($index++ !== 0) {
+                        $result .= ',';
+                    }
+                    if ($prettyOutput) {
+                        $result .= "\n" . str_repeat($space, $indent + $tabWidth);
+                    }
+                    if ($assoc) {
+                        $result .= $this->phpEncode($key, 0, true) . $space . '=>' . $space;
+                    }
+                    $result .= $this->phpEncode($value, $indent + $tabWidth);
                 }
                 if ($prettyOutput) {
-                    $result .= "\n" . str_repeat($space, $indent + $tabWidth);
+                    $result .= "\n" . str_repeat($space, $indent);
                 }
-                if ($assoc) {
-                    $result .= $this->phpEncode($key) . $space . '=>' . $space;
-                }
-                $result .= $this->phpEncode($value, $indent + $tabWidth);
-            }
-            if ($prettyOutput) {
-                $result .= "\n" . str_repeat($space, $indent);
-            }
-            $result .= ')';
-        } elseif (is_string($data)) {
-            $result = "'" . addcslashes($data, "'\\") . "'";
-        } elseif (is_int($data) && PHP_INT_SIZE > 4 && ($data < $minInt32 || $data > $maxInt32)) {
-            $result = "'{$data}'";
-        } else {
-            $result = $data;
+                $result .= ')';
+                break;
+            default:
+                throw new Exception("Unsupported type: {$type}");
         }
 
         return $result;
