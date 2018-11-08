@@ -7,7 +7,7 @@ set_error_handler(function ($errno, $errstr, $errfile = '', $errline = null) {
 });
 define('DOCKER_REPOSITORY', 'punicdata');
 try {
-    $punicDataDirectory = dirname(dirname(__FILE__));
+    $punicDataDirectory = dirname(__DIR__);
     $dockerFileDirectory = $punicDataDirectory . DIRECTORY_SEPARATOR . 'docker';
     $dockerFile = $dockerFileDirectory . DIRECTORY_SEPARATOR . 'Dockerfile';
     if (!is_file($dockerFile)) {
@@ -30,7 +30,7 @@ try {
     }
     if ($dockerImage === null) {
         fwrite(STDOUT, "Creating Docker image\n");
-        $dockerImage = $docker->createImage($dockerFile, DOCKER_REPOSITORY . ':' . $dockerFileMD5, $punicDataDirectory . '/bin', array('--rm'), true);
+        $dockerImage = $docker->createImage($dockerFile, DOCKER_REPOSITORY . ':' . $dockerFileMD5, $punicDataDirectory . '/bin', ['--rm'], true);
     }
     foreach ($_SERVER['argv'] as $index => $arg) {
         if ($index === 0) {
@@ -42,13 +42,13 @@ try {
     $docker->runImage(
         $dockerImage,
         $command,
-        array(
+        [
             '/punicdata' => $punicDataDirectory,
-        ),
-        array(
+        ],
+        [
             '--rm',
-            '--workdir /punicdata'
-        ),
+            '--workdir /punicdata',
+        ],
         true
     );
 } catch (Exception $x) {
@@ -89,11 +89,13 @@ class Docker
                 self::$available = false;
             }
         }
+
         return self::$available;
     }
 
     /**
      * @param string $dockerReference
+     * @param mixed $reference
      *
      * @throws Exception
      *
@@ -101,7 +103,7 @@ class Docker
      */
     public function getImagesByReference($reference)
     {
-        $result = array();
+        $result = [];
         $output = static::runDocker('images --all ' . escapeshellarg("--filter=reference={$reference}") . ' --format ' . escapeshellarg(DockerImage::FORMAT), false);
         foreach (explode("\n", $output) as $line) {
             if (trim($line) !== '') {
@@ -132,15 +134,16 @@ class Docker
      * @param string $reference
      * @param array $options
      * @param bool $showProgress
+     * @param mixed $path
      *
      * @throws Exception
      *
      * @return DockerImage $dockerImage
      */
-    public function createImage($dockerFile, $reference, $path = '', array $options = array(), $showProgress = false)
+    public function createImage($dockerFile, $reference, $path = '', array $options = [], $showProgress = false)
     {
         $dockerFile = str_replace('/', DIRECTORY_SEPARATOR, $dockerFile);
-        $args = array();
+        $args = [];
         $args[] = 'build';
         $args[] = '--file ' . escapeshellarg($dockerFile);
         $args[] = '--tag ' . escapeshellarg((string) $reference);
@@ -156,6 +159,7 @@ class Docker
         if (count($built) !== 1) {
             throw new Exception('Failed find built docker image.');
         }
+
         return $built[0];
     }
 
@@ -164,12 +168,13 @@ class Docker
      * @param string $command
      * @param array $volumes
      * @param array $options
-     * 
+     * @param mixed $showProgress
+     *
      * @return string|null
      */
-    public function runImage(DockerImage $dockerImage, $command, array $volumes = array(), array $options = array(), $showProgress = false)
+    public function runImage(DockerImage $dockerImage, $command, array $volumes = [], array $options = [], $showProgress = false)
     {
-        $args = array();
+        $args = [];
         $args[] = 'run';
         if ($showProgress && !in_array('--tty', $options)) {
             $args[] = '--tty';
@@ -186,6 +191,7 @@ class Docker
 
     /**
      * @param string $args
+     * @param mixed $passthru
      *
      * @throws Exception
      *
@@ -193,19 +199,21 @@ class Docker
      */
     protected static function runDocker($args, $passthru)
     {
-        $rc = - 1;
+        $rc = -1;
         if ($passthru) {
             @passthru("docker {$args}", $rc);
             if ($rc !== 0) {
                 throw new Exception('docker failed!');
             }
+
             return null;
         } else {
-            $output = array();
+            $output = [];
             @exec("docker {$args} 2>&1", $output, $rc);
             if ($rc !== 0) {
                 throw new Exception("docker failed:\n" . trim(implode("\n", $output)));
             }
+
             return trim(implode("\n", $output));
         }
     }

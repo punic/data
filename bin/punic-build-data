@@ -12,7 +12,7 @@ try {
         $optionArray = array_values($argv);
         array_shift($optionArray);
     } else {
-        $optionArray = array();
+        $optionArray = [];
     }
     $options = BuildOptions::fromArray($optionArray);
     checkEnvironment();
@@ -64,7 +64,7 @@ try {
         echo "done.\n";
     }
     if (!$sourceData->isJsonGenericPresent('rbnf')) {
-        echo 'Creating the rbnf JSON files... '; 
+        echo 'Creating the rbnf JSON files... ';
         $sourceData->ensureJsonGeneric('rbnf');
         echo "done.\n";
     }
@@ -82,10 +82,10 @@ try {
     $converter = new CldrConverter($fileUtils, $sourceData, $phpWriter, $options);
     $numLocales = count($locales);
     $currentLocaleIndex = 0;
-    $localeFiles = array();
+    $localeFiles = [];
     foreach ($locales as $localeID) {
         echo 'Processing ', $localeID, ' (', $currentLocaleIndex + 1, '/', $numLocales, "):\n";
-        $destDir = $options->getOutputDirectory().'/'.str_replace('_', '-', $localeID);
+        $destDir = $options->getOutputDirectory() . '/' . str_replace('_', '-', $localeID);
         if (!$sourceData->isJsonLocalePresent($localeID)) {
             echo '  - building source JSON data... ';
             $sourceData->ensureJsonLocale($localeID);
@@ -110,7 +110,7 @@ try {
 } catch (Exception $x) {
     echo "\n", $x->getMessage(), "\n";
     if (!$x instanceof UserMessageException) {
-        echo "FILE: ", $x->getFile(), '@', $x->getLine(), "\n";
+        echo 'FILE: ', $x->getFile(), '@', $x->getLine(), "\n";
         if (method_exists($x, 'getTraceAsString')) {
             echo "TRACE:\n", $x->getTraceAsString(), "\n";
         }
@@ -127,19 +127,19 @@ function checkEnvironment()
     if (!class_exists('Collator')) {
         throw new UserMessageException('Missing PHP extension: intl');
     }
-    $output = array();
+    $output = [];
     $rc = null;
     @exec('svn --version 2>&1', $output, $rc);
     if ($rc !== 0) {
         throw new UserMessageException('Missing SVN command');
     }
-    $output = array();
+    $output = [];
     $rc = null;
     @exec('java -version 2>&1', $output, $rc);
     if ($rc !== 0) {
         throw new UserMessageException('Missing Java JDK');
     }
-    $output = array();
+    $output = [];
     $rc = null;
     @exec('ant -version 2>&1', $output, $rc);
     if ($rc !== 0) {
@@ -301,6 +301,8 @@ class BuildOptions
     }
 
     /**
+     * @param null|mixed $cldrVersion
+     *
      * @return string
      */
     protected static function getDefaultOutputDirectory($cldrVersion = null)
@@ -308,7 +310,8 @@ class BuildOptions
         if ($cldrVersion === null) {
             $cldrVersion = static::DEFAULT_CLDR_VERSION;
         }
-        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(dirname(__FILE__))), '/').'/docs/' . static::FORMAT_VERSION . '/' . $cldrVersion;
+
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/docs/' . static::FORMAT_VERSION . '/' . $cldrVersion;
     }
 
     /**
@@ -330,13 +333,14 @@ class BuildOptions
 
     /**
      * Get the default path to the state file.
+     *
      * @return string
      */
     protected static function getDefaultStateFile()
     {
-        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(dirname(__FILE__))), '/').'/docs/state.json';
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/docs/state.json';
     }
-    
+
     /**
      * Should the state file be created/updated?
      *
@@ -376,7 +380,7 @@ class BuildOptions
      */
     protected static function getDefaultTemporaryDirectory()
     {
-        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(dirname(__FILE__))), '/').'/temp';
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/temp';
     }
 
     /**
@@ -390,7 +394,7 @@ class BuildOptions
         $this->resetPunicData = false;
         $this->prettyOutput = false;
         $this->locales = true;
-        $this->excludeLocales = array();
+        $this->excludeLocales = [];
         $this->outputDirectory = null;
         $this->stateFile = static::getDefaultStateFile();
         $this->updateStateFile = true;
@@ -405,7 +409,7 @@ class BuildOptions
     public static function fromArray(array $options)
     {
         $result = new static();
-        $localeOptions = array();
+        $localeOptions = [];
         $n = count($options);
         for ($i = 0; $i < $n; ++$i) {
             if (preg_match('/^(--[^=]+)=(.*)$/', $options[$i], $matches)) {
@@ -530,7 +534,7 @@ class BuildOptions
         if (is_string($path)) {
             $path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
             if (stripos(PHP_OS, 'WIN') === 0) {
-                $invalidChars = implode('', array_map('chr', range(0, 31))).'*?"<>|';
+                $invalidChars = implode('', array_map('chr', range(0, 31))) . '*?"<>|';
             } else {
                 $invalidChars = '';
             }
@@ -551,7 +555,7 @@ class BuildOptions
     protected function parseLocaleOptions(array $localeOptions)
     {
         $allLocales = false;
-        $locales = array();
+        $locales = [];
         foreach ($localeOptions as $localeOption) {
             if ($localeOption === '') {
                 throw new UserMessageException('Empty locale detected');
@@ -625,7 +629,7 @@ class BuildOptions
             if (!empty($common)) {
                 $this->locales = array_values(array_diff($this->locales, $common));
             }
-            $this->excludeLocales = array();
+            $this->excludeLocales = [];
         }
     }
 
@@ -638,7 +642,7 @@ class BuildOptions
             if (empty($this->excludeLocales)) {
                 $result = 'all locales';
             } else {
-                $result = 'all locales except '.implode(', ', $this->excludeLocales);
+                $result = 'all locales except ' . implode(', ', $this->excludeLocales);
             }
         } else {
             $result = implode(', ', $this->locales);
@@ -745,7 +749,7 @@ class FileUtils
     {
         $maxRetries = 5;
         if (is_file($path) || is_link($path)) {
-            for ($i = 1; ; $i++) {
+            for ($i = 1;; $i++) {
                 if (@unlink($path) === false) {
                     if ($i === $maxRetries) {
                         throw new Exception("Failed to delete the file $path");
@@ -759,11 +763,11 @@ class FileUtils
             if ($contents === false) {
                 throw new Exception("Failed to retrieve the contents of the directory $path");
             }
-            foreach (array_diff($contents, array('.', '..')) as $item) {
-                $this->deleteFromFilesystem($path.'/'.$item);
+            foreach (array_diff($contents, ['.', '..']) as $item) {
+                $this->deleteFromFilesystem($path . '/' . $item);
             }
             if (!$emptyOnlyDir) {
-                for ($i = 1; ; $i++) {
+                for ($i = 1;; $i++) {
                     if (@rmdir($path) === false) {
                         if ($i === $maxRetries) {
                             throw new Exception("Failed to delete the directory $path");
@@ -835,7 +839,7 @@ class SourceData
      */
     public function getSvnDirectory()
     {
-        return $this->options->getTemporaryDirectory().'/cldr/'.$this->options->getCLDRVersion().'/svn';
+        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/svn';
     }
 
     /**
@@ -869,17 +873,17 @@ class SourceData
             $this->fileUtils->createDirectory($dir);
             $this->fileUtils->deleteFromFilesystem($dir);
             try {
-                $tag = 'release-'.str_replace('.', '-', $this->options->getCLDRVersion());
-                $output = array();
+                $tag = 'release-' . str_replace('.', '-', $this->options->getCLDRVersion());
+                $output = [];
                 $rc = null;
-                @exec('svn checkout http://www.unicode.org/repos/cldr/tags/'.$tag.'/ '.argToShell($dir).' 2>&1', $output, $rc);
+                @exec('svn checkout http://www.unicode.org/repos/cldr/tags/' . $tag . '/ ' . argToShell($dir) . ' 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_dir($dir)) {
                         $rc = -1;
                     }
                 }
                 if ($rc !== 0) {
-                    throw new Exception("Error $rc!\nError details:\n".implode("\n", $output));
+                    throw new Exception("Error $rc!\nError details:\n" . implode("\n", $output));
                 }
             } catch (Exception $x) {
                 try {
@@ -902,7 +906,7 @@ class SourceData
     {
         if ($this->availableLocales === null) {
             $this->ensureSvnPresent();
-            $dir = $this->getSvnDirectory().'/common/main';
+            $dir = $this->getSvnDirectory() . '/common/main';
             if (!is_dir($dir)) {
                 throw new Exception("Unable to find the directory $dir");
             }
@@ -910,7 +914,7 @@ class SourceData
             if ($contents === false) {
                 throw new Exception("Failed to retrieve the contents of the directory $dir");
             }
-            $availableLocales = array();
+            $availableLocales = [];
             foreach ($contents as $item) {
                 if (preg_match('/^(.+)\.xml$/', $item, $matches)) {
                     $localeID = $matches[1];
@@ -944,7 +948,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getSvnDirectory().'/tools/java/cldr.jar';
+        return $this->getSvnDirectory() . '/tools/java/cldr.jar';
     }
 
     /**
@@ -976,16 +980,16 @@ class SourceData
             $this->ensureSvnPresent();
             $file = $this->getJarFile();
             try {
-                $output = array();
+                $output = [];
                 $rc = null;
-                @exec('ant -f '.argToShell($this->getSvnDirectory().'/tools/java/build.xml').' jar 2>&1', $output, $rc);
+                @exec('ant -f ' . argToShell($this->getSvnDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
                     }
                 }
                 if ($rc !== 0) {
-                    throw new Exception("Error $rc!\nError details:\n".implode("\n", $output));
+                    throw new Exception("Error $rc!\nError details:\n" . implode("\n", $output));
                 }
             } catch (Exception $x) {
                 try {
@@ -1004,7 +1008,7 @@ class SourceData
      */
     protected function getJsonDirectory()
     {
-        return $this->options->getTemporaryDirectory().'/cldr/'.$this->options->getCLDRVersion().'/json';
+        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/json';
     }
 
     /**
@@ -1035,7 +1039,7 @@ class SourceData
      */
     public function getJsonDirectoryForLocale($localeID)
     {
-        return $this->getJsonDirectory().'/locales/'.$localeID;
+        return $this->getJsonDirectory() . '/locales/' . $localeID;
     }
 
     /**
@@ -1067,24 +1071,24 @@ class SourceData
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
-                $cmd .= ' -DCLDR_DIR='.argToShell($this->getSvnDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR='.argToShell($dir); // where to save the generated files
-                $cmd .= ' -jar '.argToShell($this->getJarFile()); // the CLDR jar file
+                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getSvnDirectory()); //  where the CLDR data is located
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
+                $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
                 $cmd .= ' -r true'; // (true|false) Whether the output JSON for the main directory should be based on resolved or unresolved data
-                $cmd .= ' -s '.argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
-                $cmd .= ' -m '.argToShell(str_replace('-', '_', $localeID)); // Regular expression to define only specific locales or files to be generated
-                $output = array();
+                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
+                $cmd .= ' -m ' . argToShell(str_replace('-', '_', $localeID)); // Regular expression to define only specific locales or files to be generated
+                $output = [];
                 $rc = null;
-                @exec($cmd.' 2>&1', $output, $rc);
+                @exec($cmd . ' 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_dir($dir)) {
                         $rc = -1;
                     }
                 }
                 if ($rc !== 0) {
-                    throw new Exception("Error $rc: ".implode("\n", $output));
+                    throw new Exception("Error $rc: " . implode("\n", $output));
                 }
             } catch (Exception $x) {
                 try {
@@ -1105,7 +1109,7 @@ class SourceData
      */
     public function getJsonDirectoryForGeneric($genericID)
     {
-        return $this->getJsonDirectory().'/'.$genericID;
+        return $this->getJsonDirectory() . '/' . $genericID;
     }
 
     /**
@@ -1137,31 +1141,31 @@ class SourceData
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
-                $cmd .= ' -DCLDR_DIR='.argToShell($this->getSvnDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR='.argToShell($dir); // where to save the generated files
-                $cmd .= ' -jar '.argToShell($this->getJarFile()); // the CLDR jar file
+                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getSvnDirectory()); //  where the CLDR data is located
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
+                $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
-                $cmd .= ' -s '.argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
+                $cmd .= ' -s ' . argToShell($this->options->getCLDRDraftStatus); // The minimum draft status of the output data
                 switch ($genericID) {
                     case 'rbnf':
                     case 'supplemental':
                     case 'segments':
                         $cmd .= ' -o true'; // (true|false) Whether to write out the 'other' section, which contains any unmatched paths
-                        $cmd .= ' -t '.$genericID; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
+                        $cmd .= ' -t ' . $genericID; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
                         break;
                     default:
                         throw new Exception("Unrecognized generic data ID: $genericID");
                 }
-                $output = array();
+                $output = [];
                 $rc = null;
-                @exec($cmd.' 2>&1', $output, $rc);
+                @exec($cmd . ' 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_dir($dir)) {
                         $rc = -1;
                     }
                 }
                 if ($rc !== 0) {
-                    throw new Exception("Error $rc: ".implode("\n", $output));
+                    throw new Exception("Error $rc: " . implode("\n", $output));
                 }
             } catch (Exception $x) {
                 try {
@@ -1202,7 +1206,7 @@ class LocaleIdentifier
     /**
      * @var string
      */
-    protected $variants = array();
+    protected $variants = [];
 
     protected function __construct()
     {
@@ -1244,9 +1248,9 @@ class LocaleIdentifier
         return $result;
     }
 
-    protected static function merge($language, $script = '', $region = '', array $variants = array())
+    protected static function merge($language, $script = '', $region = '', array $variants = [])
     {
-        $parts = array();
+        $parts = [];
 
         $parts[] = $language;
         if ($script !== '') {
@@ -1273,7 +1277,7 @@ class LocaleIdentifier
      */
     public function getParentLocaleIdentifiers()
     {
-        $parents = array();
+        $parents = [];
         if (!empty($this->variants)) {
             $parents[] = static::merge($this->language, $this->script, $this->region);
         }
@@ -1326,7 +1330,7 @@ class PhpWriter
         if (@is_file($file)) {
             $this->fileUtils->deleteFromFilesystem($file);
         }
-        $php = "<?php\n// This file is auto-generated. Do not edit!\nreturn ".$this->phpEncode($data).";\n";
+        $php = "<?php\n// This file is auto-generated. Do not edit!\nreturn " . $this->phpEncode($data) . ";\n";
         if (@file_put_contents($file, $php) === false) {
             throw new Exception("Failed write to $file");
         }
@@ -1346,19 +1350,19 @@ class PhpWriter
                     $result .= ',';
                 }
                 if ($prettyOutput) {
-                    $result .= "\n".str_repeat($space, $indent + $tabWidth);
+                    $result .= "\n" . str_repeat($space, $indent + $tabWidth);
                 }
                 if ($assoc) {
-                    $result .= $this->phpEncode($key).$space.'=>'.$space;
+                    $result .= $this->phpEncode($key) . $space . '=>' . $space;
                 }
                 $result .= $this->phpEncode($value, $indent + $tabWidth);
             }
             if ($prettyOutput) {
-                $result .= "\n".str_repeat($space, $indent);
+                $result .= "\n" . str_repeat($space, $indent);
             }
             $result .= ')';
         } elseif (is_string($data)) {
-            $result = "'".addcslashes($data, "'\\")."'";
+            $result = "'" . addcslashes($data, "'\\") . "'";
         } else {
             $result = $data;
         }
@@ -1416,29 +1420,29 @@ class CldrConverter
     {
         $this->fileUtils->createDirectory($destinationDirectory);
 
-        $destinationFiles = array();
+        $destinationFiles = [];
         try {
-            $converters = array(
+            $converters = [
                 new CalendarLocalePunicConversion(),
                 new TimeZoneNameslocalePunicConversion(),
                 new ListPatternsLocalePunicConversion(),
                 new UnitsLocalePunicConversion(),
-                new NoopLocalePunicConversion(array('dates', 'fields'), 'dateFields'),
+                new NoopLocalePunicConversion(['dates', 'fields'], 'dateFields'),
                 new LanguagesLocalePunicConversion(),
-                new NoopLocalePunicConversion(array('localeDisplayNames', 'territories')),
+                new NoopLocalePunicConversion(['localeDisplayNames', 'territories']),
                 new LocaleDisplayNamesLocalePunicConversion(),
                 new NumbersLocalePunicConversion(),
-                new NoopLocalePunicConversion(array('layout', 'orientation'), 'layout'),
-                new NoopLocalePunicConversion(array('localeDisplayNames', 'measurementSystemNames')),
+                new NoopLocalePunicConversion(['layout', 'orientation'], 'layout'),
+                new NoopLocalePunicConversion(['localeDisplayNames', 'measurementSystemNames']),
                 new CurrenciesLocalePunicConversion(),
                 new RbnfLocalePunicConversion(),
-            );
+            ];
             if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
                 $converters[] = new SubdivisionsLocalePunicConversion();
             }
 
             foreach ($converters as $converter) {
-                $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
+                $destinationFile = $destinationDirectory . '/' . $converter->getIdentifier() . '.php';
                 $destinationFiles[] = $destinationFile;
                 if (!is_file($destinationFile)) {
                     $data = $converter->convert($this->sourceData, $localeID);
@@ -1446,7 +1450,7 @@ class CldrConverter
 
                     if ($converter->getIdentifier() === 'currencies' && $localeID !== 'en') {
                         $this->copyMissingData_currency(
-                            $destinationDirectory.'/currencies.php'
+                            $destinationDirectory . '/currencies.php'
                         );
                     }
                 }
@@ -1470,31 +1474,31 @@ class CldrConverter
      */
     public function convertSupplemental($destinationDirectory)
     {
-        $converters = array(
+        $converters = [
             new TelephoneCodeDataSupplementalPunicConversion(),
             new TerritoryInfoSupplementalPunicConversion(),
             new TimeDataSupplementalPunicConversion(),
             new DayPeriodsSupplementalPunicConversion(),
             new WeekDataSupplementalPunicConversion(),
-            new NoopSupplementalPunicConversion(array('supplemental', 'parentLocales', 'parentLocale'), 'parentLocales'),
-            new NoopSupplementalPunicConversion(array('supplemental', 'likelySubtags')),
+            new NoopSupplementalPunicConversion(['supplemental', 'parentLocales', 'parentLocale'], 'parentLocales'),
+            new NoopSupplementalPunicConversion(['supplemental', 'likelySubtags']),
             new TerritoryContainmentSupplementalPunicConversion(),
             new MetaZonesSupplementalPunicConversion(),
-            new NoopSupplementalPunicConversion(array('supplemental', 'primaryZones')),
+            new NoopSupplementalPunicConversion(['supplemental', 'primaryZones']),
             new PluralsSupplementalPunicConversion('cardinal', 'plurals'),
             new PluralsSupplementalPunicConversion('ordinal', 'ordinals'),
             new MeasurementDataSupplementalPunicConversion(),
             new CurrencyDataSupplementalPunicConversion(),
-        );
+        ];
         if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
             $converters[] = new SubdivisionsSupplementalPunicConversion();
             $converters[] = new TimeZoneSupplementalPunicConversion();
             $converters[] = new CodeMappingsSupplementalPunicConversion();
         }
 
-        $destinationFiles = array();
+        $destinationFiles = [];
         foreach ($converters as $converter) {
-            $destinationFile = $destinationDirectory.'/'.$converter->getIdentifier().'.php';
+            $destinationFile = $destinationDirectory . '/' . $converter->getIdentifier() . '.php';
             $destinationFiles[] = $destinationFile;
             if (!is_file($destinationFile)) {
                 $data = $converter->convert($this->sourceData);
@@ -1504,7 +1508,7 @@ class CldrConverter
 
         $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
         $this->fileUtils->createDirectory($testDir);
-        copy($destinationDirectory.'/plurals.php', $testDir.'/plurals.php');
+        copy($destinationDirectory . '/plurals.php', $testDir . '/plurals.php');
 
         return $destinationFiles;
     }
@@ -1520,11 +1524,11 @@ class CldrConverter
     private function numberFormatToRegularExpressions(array $symbols, $isoPattern)
     {
         $p = explode(';', $isoPattern);
-        $patterns = array(
+        $patterns = [
             '+' => $p[0],
             '-' => (count($p) == 1) ? "-{$p[0]}" : $p[1],
-        );
-        $result = array();
+        ];
+        $result = [];
         $m = null;
         foreach ($patterns as $patternKey => $pattern) {
             $rxPost = $rxPre = '';
@@ -1537,7 +1541,7 @@ class CldrConverter
                 if (strlen($m[2]) > 0) {
                     $rxPre = preg_quote($m[2]);
                 }
-                $pattern = $m[1].$m[3].$m[5];
+                $pattern = $m[1] . $m[3] . $m[5];
                 if (strlen($m[4]) > 0) {
                     $rxPost = preg_quote($m[4]);
                 }
@@ -1553,11 +1557,11 @@ class CldrConverter
                 switch ($intPattern) {
                     case '#E0':
                     case '#E00':
-                        $rx .= '('.preg_quote($symbols['plusSign']).')?[0-9]+(('.preg_quote($symbols['decimal']).')[0-9]+)*[eE](('.preg_quote($symbols['minusSign']).')|('.preg_quote($symbols['plusSign']).'))?[0-9]+';
+                        $rx .= '(' . preg_quote($symbols['plusSign']) . ')?[0-9]+((' . preg_quote($symbols['decimal']) . ')[0-9]+)*[eE]((' . preg_quote($symbols['minusSign']) . ')|(' . preg_quote($symbols['plusSign']) . '))?[0-9]+';
                         break;
                     case '-#E0':
                     case '-#E00':
-                        $rx .= '('.preg_quote($symbols['minusSign']).')?[0-9]+(('.preg_quote($symbols['decimal']).')[0-9]+)*[eE](('.preg_quote($symbols['minusSign']).')|('.preg_quote($symbols['plusSign']).'))?[0-9]+';
+                        $rx .= '(' . preg_quote($symbols['minusSign']) . ')?[0-9]+((' . preg_quote($symbols['decimal']) . ')[0-9]+)*[eE]((' . preg_quote($symbols['minusSign']) . ')|(' . preg_quote($symbols['plusSign']) . '))?[0-9]+';
                         break;
                     default:
                         throw new Exception("Invalid chunk ('$intPattern') in pattern '$pattern'");
@@ -1573,9 +1577,9 @@ class CldrConverter
                         case '#':
                         case '-#':
                             if ($chunk === '-#') {
-                                $rx .= '('.preg_quote($symbols['minusSign']).')?';
+                                $rx .= '(' . preg_quote($symbols['minusSign']) . ')?';
                             } else {
-                                $rx .= '('.preg_quote($symbols['plusSign']).')?';
+                                $rx .= '(' . preg_quote($symbols['plusSign']) . ')?';
                             }
                             if ($nextChunk === '##0') {
                                 $rx .= '[0-9]{1,3}';
@@ -1587,7 +1591,7 @@ class CldrConverter
                             break;
                         case '##':
                             if ($nextChunk === '##0') {
-                                $rx .= '(('.preg_quote($symbols['group']).')?[0-9]{2})*';
+                                $rx .= '((' . preg_quote($symbols['group']) . ')?[0-9]{2})*';
                             } else {
                                 throw new Exception("Invalid chunk #$chunkIndex ('$chunk') in pattern '$pattern'");
                             }
@@ -1596,7 +1600,7 @@ class CldrConverter
                             if ($prevChunk === '##') {
                                 $rx .= '[0-9]';
                             } elseif (($prevChunk === '#') || ($prevChunk === '-#')) {
-                                $rx .= '(('.preg_quote($symbols['group']).')?[0-9]{3})*';
+                                $rx .= '((' . preg_quote($symbols['group']) . ')?[0-9]{3})*';
                             } else {
                                 throw new Exception("Invalid chunk #$chunkIndex ('$chunk') in pattern '$pattern'");
                             }
@@ -1618,17 +1622,17 @@ class CldrConverter
             if (strlen($decimalPattern) > 0) {
                 switch ($decimalPattern) {
                     case '###':
-                        $rx .= '(('.preg_quote($symbols['decimal']).')[0-9]+)?';
+                        $rx .= '((' . preg_quote($symbols['decimal']) . ')[0-9]+)?';
                         break;
                     case '###-':
-                        $rx .= '(('.preg_quote($symbols['decimal']).')[0-9]+)?('.preg_quote($symbols['minusSign']).')';
+                        $rx .= '((' . preg_quote($symbols['decimal']) . ')[0-9]+)?(' . preg_quote($symbols['minusSign']) . ')';
                         break;
                     default:
                         $m = null;
                         if (preg_match('/^(0+)(-?)$/', $decimalPattern, $m)) {
-                            $rx .= '('.preg_quote($symbols['decimal']).')[0-9]{'.strlen($m[1]).'}';
+                            $rx .= '(' . preg_quote($symbols['decimal']) . ')[0-9]{' . strlen($m[1]) . '}';
                             if (substr($decimalPattern, -1) === '-') {
-                                $rx .= '('.preg_quote($symbols['minusSign']).')';
+                                $rx .= '(' . preg_quote($symbols['minusSign']) . ')';
                             }
                         } else {
                             throw new Exception("Invalid chunk ('$decimalPattern') in pattern '$pattern'");
@@ -1636,7 +1640,7 @@ class CldrConverter
                 }
             }
 
-            $result[$patternKey] = '/^'.$rxPre.$rx.$rxPost.'$/u';
+            $result[$patternKey] = '/^' . $rxPre . $rx . $rxPost . '$/u';
         }
 
         return $result;
@@ -1721,7 +1725,7 @@ abstract class PunicConversion
                     }
                 }
             }
-            $this->checkExactKeys($data, array($root));
+            $this->checkExactKeys($data, [$root]);
             $data = $data[$root];
             $path .= "/$root";
         }
@@ -1746,11 +1750,11 @@ abstract class PunicConversion
         $nodeKeys = array_keys($node);
         $missingKeys = array_diff($expectedKeys, $nodeKeys);
         if (count($missingKeys) > 0) {
-            throw new Exception('Missing these node keys: '.implode(', ', $missingKeys));
+            throw new Exception('Missing these node keys: ' . implode(', ', $missingKeys));
         }
         $extraKeys = array_diff($nodeKeys, $expectedKeys);
         if (count($extraKeys) > 0) {
-            throw new Exception('Unexpected node keys: '.implode(', ', $extraKeys));
+            throw new Exception('Unexpected node keys: ' . implode(', ', $extraKeys));
         }
     }
 
@@ -1768,7 +1772,7 @@ abstract class PunicConversion
 
         $data = @json_decode($json, true);
         if ($data === null) {
-            throw new Exception("Failed to decode JSON data");
+            throw new Exception('Failed to decode JSON data');
         }
 
         return $data;
@@ -1780,7 +1784,7 @@ abstract class PunicConversion
      *
      * @return array
      */
-    protected function loadXml($sourceFile, $fallbackData = array())
+    protected function loadXml($sourceFile, $fallbackData = [])
     {
         $doc = new DOMDocument();
         $doc->load($sourceFile);
@@ -1799,22 +1803,22 @@ abstract class PunicConversion
     protected function convertDomElement(DOMElement $element, $path, $fallbackData = null)
     {
         $paths = $this->getPaths();
-        $path .= '/'.$element->tagName;
+        $path .= '/' . $element->tagName;
 
-        $data = $fallbackData ? $fallbackData : array();
+        $data = $fallbackData ? $fallbackData : [];
 
         foreach ($element->childNodes as $childNode) {
             switch ($childNode->nodeType) {
                 case XML_ELEMENT_NODE:
-                    $childPath = $path.'/'.$childNode->tagName;
+                    $childPath = $path . '/' . $childNode->tagName;
                     if (isset($paths[$childPath])) {
-                        $childAttributes = array();
-                        $values = array();
+                        $childAttributes = [];
+                        $values = [];
                         foreach ($childNode->attributes as $attribute) {
                             if (in_array($attribute->name, $paths[$childPath])) {
                                 $childAttributes[] = $attribute->value;
                             } else {
-                                $values['_'.$attribute->name] = $attribute->value;
+                                $values['_' . $attribute->name] = $attribute->value;
                             }
                         }
 
@@ -1822,11 +1826,11 @@ abstract class PunicConversion
                         if ($childNode->childNodes->length === 0) {
                             $data[$childNode->tagName][$key] = $values;
                         } else {
-                            $childFallbackData = isset($fallbackData[$childNode->tagName][$key]) ? $fallbackData[$childNode->tagName][$key] : array();
+                            $childFallbackData = isset($fallbackData[$childNode->tagName][$key]) ? $fallbackData[$childNode->tagName][$key] : [];
                             $data[$childNode->tagName][$key] = $this->convertDomElement($childNode, $path, $childFallbackData);
                         }
                     } else {
-                        $childFallbackData = isset($fallbackData[$childNode->tagName]) ? $fallbackData[$childNode->tagName] : array();
+                        $childFallbackData = isset($fallbackData[$childNode->tagName]) ? $fallbackData[$childNode->tagName] : [];
                         $data[$childNode->tagName] = $this->convertDomElement($childNode, $path, $childFallbackData);
                     }
                     break;
@@ -1853,7 +1857,7 @@ abstract class PunicConversion
             $result = preg_replace_callback(
                 '/\\{(\\d+)\\}/',
                 function ($matches) {
-                    return '%'.(1 + (int) $matches[1]).'$s';
+                    return '%' . (1 + (int) $matches[1]) . '$s';
                 },
                 $fmt
             );
@@ -1924,6 +1928,7 @@ abstract class LocalePunicConversion extends PunicConversion
     {
         $data = $this->load($sourceData, $localeID);
         $data = $this->process($data, $localeID);
+
         return $data;
     }
 
@@ -1935,13 +1940,13 @@ abstract class LocalePunicConversion extends PunicConversion
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        $file = $sourceData->getJsonDirectoryForLocale($localeID).'/'.$this->getIdentifier().'.json';
+        $file = $sourceData->getJsonDirectoryForLocale($localeID) . '/' . $this->getIdentifier() . '.json';
 
         if (is_file($file)) {
             return $file;
         }
 
-        $fallbackFile = $sourceData->getJsonDirectoryForLocale('en').'/'.$this->getIdentifier().'.json';
+        $fallbackFile = $sourceData->getJsonDirectoryForLocale('en') . '/' . $this->getIdentifier() . '.json';
         if (is_file($fallbackFile)) {
             return $fallbackFile;
         }
@@ -1951,6 +1956,7 @@ abstract class LocalePunicConversion extends PunicConversion
 
     /**
      * @param string $json
+     * @param mixed $localeID
      *
      * @return array
      */
@@ -1969,7 +1975,7 @@ abstract class LocalePunicConversion extends PunicConversion
     protected function getRoots($localeID)
     {
         return array_merge(
-            array($this->type, str_replace('_', '-', $localeID)),
+            [$this->type, str_replace('_', '-', $localeID)],
             $this->roots
         );
     }
@@ -1981,9 +1987,9 @@ abstract class LocalePunicConversion extends PunicConversion
      */
     protected function getUnsetByPath($localeID)
     {
-        return array(
-            '/'.$this->type.'/'.str_replace('_', '-', $localeID) => array('identity'),
-        );
+        return [
+            '/' . $this->type . '/' . str_replace('_', '-', $localeID) => ['identity'],
+        ];
     }
 
     /**
@@ -2023,7 +2029,7 @@ class LanguagesLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('localeDisplayNames', 'languages'));
+        parent::__construct('main', ['localeDisplayNames', 'languages']);
     }
 
     /**
@@ -2047,7 +2053,7 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('dates', 'calendars', 'gregorian'), 'calendar');
+        parent::__construct('main', ['dates', 'calendars', 'gregorian'], 'calendar');
     }
 
     /**
@@ -2058,7 +2064,7 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        return $sourceData->getJsonDirectoryForLocale($localeID).'/ca-gregorian.json';
+        return $sourceData->getJsonDirectoryForLocale($localeID) . '/ca-gregorian.json';
     }
 
     /**
@@ -2074,7 +2080,7 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
         foreach (array_keys($data['dateTimeFormats']) as $width) {
             $data['dateTimeFormats'][$width] = $this->toPhpSprintf($data['dateTimeFormats'][$width]);
         }
-        foreach (array('eraNames' => 'wide', 'eraAbbr' => 'abbreviated', 'eraNarrow' => 'narrow') as $keyFrom => $keyTo) {
+        foreach (['eraNames' => 'wide', 'eraAbbr' => 'abbreviated', 'eraNarrow' => 'narrow'] as $keyFrom => $keyTo) {
             if (array_key_exists($keyFrom, $data['eras'])) {
                 $data['eras'][$keyTo] = $data['eras'][$keyFrom];
                 unset($data['eras'][$keyFrom]);
@@ -2089,7 +2095,7 @@ class TimeZoneNamesLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('dates', 'timeZoneNames'));
+        parent::__construct('main', ['dates', 'timeZoneNames']);
     }
 
     /**
@@ -2128,7 +2134,7 @@ class ListPatternsLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('listPatterns'));
+        parent::__construct('main', ['listPatterns']);
     }
 
     /**
@@ -2140,13 +2146,13 @@ class ListPatternsLocalePunicConversion extends LocalePunicConversion
     public function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
-        $result = array();
+        $result = [];
         foreach ($data as $patternType => $patternData) {
             if (!preg_match('/^listPattern-type-(.+)$/', $patternType, $m)) {
                 throw new Exception("Invalid list patterns node '$patternType'");
             }
             $patternName = $m[1];
-            $result[$patternName] = array();
+            $result[$patternName] = [];
             foreach ($data[$patternType] as $when => $pattern) {
                 $result[$patternName][$when] = $this->toPhpSprintf($pattern);
             }
@@ -2160,7 +2166,7 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('units'));
+        parent::__construct('main', ['units']);
     }
 
     /**
@@ -2181,13 +2187,13 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                     foreach (array_keys($data[$width]) as $unitKey) {
                         switch ($unitKey) {
                             case 'per':
-                                $this->checkExactKeys($data[$width][$unitKey], array('compoundUnitPattern'));
+                                $this->checkExactKeys($data[$width][$unitKey], ['compoundUnitPattern']);
                                 $data[$width]['_compoundPattern'] = $this->toPhpSprintf($data[$width][$unitKey]['compoundUnitPattern']);
                                 unset($data[$width][$unitKey]);
                                 break;
                             case 'coordinateUnit':
-                                $this->checkExactKeys($data[$width][$unitKey], array('east', 'north', 'south', 'west'));
-                                $data[$width]['_coordinateUnit'] = array();
+                                $this->checkExactKeys($data[$width][$unitKey], ['east', 'north', 'south', 'west']);
+                                $data[$width]['_coordinateUnit'] = [];
                                 foreach (array_keys($data[$width][$unitKey]) as $direction) {
                                     $data[$width]['_coordinateUnit'][$direction] = $this->toPhpSprintf($data[$width][$unitKey][$direction]);
                                 }
@@ -2200,10 +2206,10 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                 $unitKind = $m[1];
                                 $unitName = $m[2];
                                 if (!array_key_exists($unitKind, $data[$width])) {
-                                    $data[$width][$unitKind] = array();
+                                    $data[$width][$unitKind] = [];
                                 }
                                 if (!array_key_exists($unitName, $data[$width][$unitKind])) {
-                                    $data[$width][$unitKind][$unitName] = array();
+                                    $data[$width][$unitKind][$unitName] = [];
                                 }
                                 if (!isset($data[$width][$unitKey]['displayName'])) {
                                     throw new Exception("Missing unit name in '$width/$unitKey'");
@@ -2236,10 +2242,10 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                 default:
                     if (preg_match('/^durationUnit-type-(.+)/', $width, $m)) {
                         unset($data[$width]['durationUnitPattern-alt-variant']);
-                        $this->checkExactKeys($data[$width], array('durationUnitPattern'));
+                        $this->checkExactKeys($data[$width], ['durationUnitPattern']);
                         $t = $m[1];
                         if (!array_key_exists('_durationPattern', $data)) {
-                            $data['_durationPattern'] = array();
+                            $data['_durationPattern'] = [];
                         }
                         $data['_durationPattern'][$t] = $data[$width]['durationUnitPattern'];
                         unset($data[$width]);
@@ -2258,7 +2264,7 @@ class LocaleDisplayNamesLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('localeDisplayNames'));
+        parent::__construct('main', ['localeDisplayNames']);
     }
 
     /**
@@ -2291,7 +2297,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('numbers'));
+        parent::__construct('main', ['numbers']);
     }
 
     /**
@@ -2303,7 +2309,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
     public function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
-        $final = array();
+        $final = [];
         foreach ($data as $key => $value) {
             if (preg_match('/^([a-z]+)-numberSystem-([a-z]+)$/i', $key, $m)) {
                 $keyPrefix = $m[1];
@@ -2317,28 +2323,28 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
                         foreach ($value as $k2 => $v2) {
                             if (preg_match('/^unitPattern-(.+)$/i', $k2, $m)) {
                                 if ($unitPattern === null) {
-                                    $unitPattern = array();
+                                    $unitPattern = [];
                                 }
                                 $unitPattern[$m[1]] = $this->toPhpSprintf($v2);
-                            } elseif (in_array($k2, array('standard', 'accounting'))) {
+                            } elseif (in_array($k2, ['standard', 'accounting'])) {
                                 $formats = explode(';', $v2);
                                 if (count($formats) === 1) {
                                     $formats[] = $final['symbols']['minusSign'] . $formats[0];
                                 }
                                 foreach ($formats as $i => $format) {
                                     $format = preg_replace('/[0-9@#.,E+]+/', '%1$s', str_replace('%', '%%', $format));
-                                    $format = str_replace(array('%%', '¤'), '%2$s', $format);
+                                    $format = str_replace(['%%', '¤'], '%2$s', $format);
                                     $final[$keyPrefix][$k2][$i === 0 ? 'positive' : 'negative'] = $format;
                                 }
-                             } elseif ($k2 === 'currencySpacing') {
+                            } elseif ($k2 === 'currencySpacing') {
                                 foreach ($v2 as $k3 => $v3) {
-                                    $final[$keyPrefix]['currencySpacing'][$k3] = array(
+                                    $final[$keyPrefix]['currencySpacing'][$k3] = [
                                         'currency' => $this->toRegularExpression('currency', $k3, $v3['currencyMatch']),
                                         'surrounding' => $this->toRegularExpression('surrounding', $k3, $v3['surroundingMatch']),
                                         'insertBetween' => $v3['insertBetween'],
-                                    );
+                                    ];
                                 }
-                             }
+                            }
                         }
                         if ($unitPattern !== null) {
                             $final[$keyPrefix]['unitPattern'] = $unitPattern;
@@ -2400,7 +2406,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('main', array('numbers', 'currencies'));
+        parent::__construct('main', ['numbers', 'currencies']);
     }
 
     /**
@@ -2412,7 +2418,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
     public function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
-        $final = array();
+        $final = [];
         foreach ($data as $currencyCode => $currencyInfo) {
             if (!preg_match('/^[A-Z]{3}$/', $currencyCode)) {
                 throw new Exception("Invalid currency code: $currencyCode");
@@ -2441,7 +2447,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
                     default:
                         if (preg_match('/^displayName-count-(.+)$/', $currencyInfoKey, $m)) {
                             if (!array_key_exists('pluralName', $currencyInfo)) {
-                                $currencyInfo['pluralName'] = array();
+                                $currencyInfo['pluralName'] = [];
                             }
                             $currencyInfo['pluralName'][$m[1]] = $currencyInfoValue;
                             unset($currencyInfo[$currencyInfoKey]);
@@ -2474,8 +2480,8 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
         $data = $final;
 
         $collator = new Collator($localeID);
-        uasort($data, function($a, $b) use ($collator) {
-            $ab = array($a['name'], $b['name']);
+        uasort($data, function ($a, $b) use ($collator) {
+            $ab = [$a['name'], $b['name']];
             $collator->sort($ab);
             $i = array_search($a['name'], $ab, true);
             if ($i === 1) {
@@ -2485,6 +2491,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
             if ($i === 1) {
                 return -1;
             }
+
             return 0;
         });
 
@@ -2496,7 +2503,7 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('subdivisions', array('localeDisplayNames', 'subdivisions', 'subdivision'), 'subdivisions');
+        parent::__construct('subdivisions', ['localeDisplayNames', 'subdivisions', 'subdivision'], 'subdivisions');
     }
 
     /**
@@ -2507,7 +2514,7 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        return $sourceData->getSvnDirectory().'/common/subdivisions/'.$localeID.'.xml';
+        return $sourceData->getSvnDirectory() . '/common/subdivisions/' . $localeID . '.xml';
     }
 
     /**
@@ -2515,7 +2522,7 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
      */
     protected function getPaths()
     {
-        return array('/ldml/localeDisplayNames/subdivisions/subdivision' => array('type'));
+        return ['/ldml/localeDisplayNames/subdivisions/subdivision' => ['type']];
     }
 
     /**
@@ -2527,14 +2534,14 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
     protected function load(SourceData $sourceData, $localeID)
     {
         $locale = LocaleIdentifier::fromString($localeID);
-        $localeIDs = array_merge(array($localeID), $locale->getParentLocaleIdentifiers(), array('en'));
+        $localeIDs = array_merge([$localeID], $locale->getParentLocaleIdentifiers(), ['en']);
 
         $key = str_replace('_', '-', $localeID);
-        $data = array(
-            $this->type => array(
-                $key => array(),
-            )
-        );
+        $data = [
+            $this->type => [
+                $key => [],
+            ],
+        ];
 
         foreach (array_reverse($localeIDs) as $localeID) {
             $sourceFile = $this->getSourceFile($sourceData, $localeID);
@@ -2551,17 +2558,20 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
 {
     public function __construct()
     {
-        parent::__construct('rbnf', array('rbnf', 'rbnf'), 'rbnf');
+        parent::__construct('rbnf', ['rbnf', 'rbnf'], 'rbnf');
     }
+
     /**
      * @param SourceData $sourceData
+     * @param mixed $localeID
      *
      * @return string
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        return $sourceData->getJsonDirectoryForGeneric('rbnf').'/'.$localeID.'.json';
+        return $sourceData->getJsonDirectoryForGeneric('rbnf') . '/' . $localeID . '.json';
     }
+
     /**
      * @param SourceData $sourceData
      * @param string     $localeID
@@ -2571,22 +2581,24 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
     protected function load(SourceData $sourceData, $localeID)
     {
         $locale = LocaleIdentifier::fromString($localeID);
-        $localeIDs = array_merge(array($localeID), $locale->getParentLocaleIdentifiers());
-        $data = array();
+        $localeIDs = array_merge([$localeID], $locale->getParentLocaleIdentifiers());
+        $data = [];
         foreach ($localeIDs as $localeID) {
             $file = $this->getSourceFile($sourceData, $localeID);
             if (file_exists($file)) {
                 $parent = parent::load($sourceData, $localeID);
                 foreach ($parent['rbnf']['rbnf'] as $group => $rulesetGrouping) {
                     if (!isset($data['rbnf']['rbnf'][$group])) {
-                        $data['rbnf']['rbnf'][$group] = array();
+                        $data['rbnf']['rbnf'][$group] = [];
                     }
                     $data['rbnf']['rbnf'][$group] += $rulesetGrouping;
                 }
             }
         }
+
         return $data;
     }
+
     /**
      * @param string $localeID
      *
@@ -2596,6 +2608,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
     {
         return $this->roots;
     }
+
     /**
      * @param string $localeID
      *
@@ -2603,10 +2616,11 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
      */
     protected function getUnsetByPath($localeID)
     {
-        return array(
-            '/rbnf' => array('identity'),
-        );
+        return [
+            '/rbnf' => ['identity'],
+        ];
     }
+
     /**
      * @param array $data
      * @param string $localeID
@@ -2616,7 +2630,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
     public function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
-        $rulesets = array();
+        $rulesets = [];
         foreach ($data as $group => $rulesetGrouping) {
             if ($group === 'NumberingSystemRules' && $localeID !== 'root') {
                 continue;
@@ -2633,7 +2647,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
                     if (is_numeric($base)) {
                         $rulesets[$type]['integer'][$base]['rule'] = $rule;
                         if (count($parts) > 1) {
-                            $rulesets[$type]['integer'][$base]['radix'] = (int)$parts[1];
+                            $rulesets[$type]['integer'][$base]['radix'] = (int) $parts[1];
                         }
                     } else {
                         $rulesets[$type][$base]['rule'] = $rule;
@@ -2642,6 +2656,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
             }
         }
         $data = $rulesets;
+
         return $data;
     }
 }
@@ -2657,6 +2672,7 @@ abstract class SupplementalPunicConversion extends PunicConversion
     {
         $data = $this->load($sourceData);
         $data = $this->process($data);
+
         return $data;
     }
 
@@ -2667,7 +2683,7 @@ abstract class SupplementalPunicConversion extends PunicConversion
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getJsonDirectoryForGeneric('supplemental').'/'.$this->getIdentifier().'.json';
+        return $sourceData->getJsonDirectoryForGeneric('supplemental') . '/' . $this->getIdentifier() . '.json';
     }
 
     /**
@@ -2695,9 +2711,9 @@ abstract class SupplementalPunicConversion extends PunicConversion
      */
     protected function getUnsetByPath()
     {
-        return array(
-            '/supplemental' => array('version', 'generation'),
-        );
+        return [
+            '/supplemental' => ['version', 'generation'],
+        ];
     }
 
     /**
@@ -2733,7 +2749,7 @@ class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConv
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'telephoneCodeData'));
+        parent::__construct('supplemental', ['supplemental', 'telephoneCodeData']);
     }
 
     /**
@@ -2750,9 +2766,9 @@ class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConv
             }
             $d = $data[$k];
             if ((!is_array($d)) || empty($d)) {
-                throw new Exception("Expecting non empty array for $k, found ".gettype($d));
+                throw new Exception("Expecting non empty array for $k, found " . gettype($d));
             }
-            $data[$k] = array();
+            $data[$k] = [];
             $n = count($d);
             for ($i = 0; $i < $n; ++$i) {
                 if (!isset($d[$i])) {
@@ -2773,7 +2789,7 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'territoryInfo'));
+        parent::__construct('supplemental', ['supplemental', 'territoryInfo']);
     }
 
     /**
@@ -2787,7 +2803,7 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
         //http://www.unicode.org/reports/tr35/tr35-info.html#Supplemental_Territory_Information
         unset($data['ZZ']);
         foreach ($data as $territoryID => $territoryInfoList) {
-            $finalTerritoryData = array();
+            $finalTerritoryData = [];
             foreach ($territoryInfoList as $territoryInfoID => $territoryInfoData) {
                 switch ($territoryInfoID) {
                     case '_gdp': // Gross domestic product
@@ -2812,12 +2828,12 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
                         if (!is_array($territoryInfoData)) {
                             throw new Exception("Invalid node: $territoryInfoID is not an array");
                         }
-                        $finalTerritoryData['languages'] = array();
+                        $finalTerritoryData['languages'] = [];
                         foreach ($territoryInfoData as $languageID => $languageInfoList) {
                             if (!is_array($languageInfoList)) {
                                 throw new Exception("Invalid node: $territoryInfoID/$languageID is not an array");
                             }
-                            $finalTerritoryData['languages'][$languageID] = array();
+                            $finalTerritoryData['languages'][$languageID] = [];
                             foreach ($languageInfoList as $languageInfoID => $languageInfoData) {
                                 switch ($languageInfoID) {
                                     case '_officialStatus':
@@ -2896,7 +2912,7 @@ class TimeDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'timeData'));
+        parent::__construct('supplemental', ['supplemental', 'timeData']);
     }
 
     /**
@@ -2923,7 +2939,7 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'dayPeriodRuleSet'), 'dayPeriods');
+        parent::__construct('supplemental', ['supplemental', 'dayPeriodRuleSet'], 'dayPeriods');
     }
 
     /**
@@ -2951,7 +2967,7 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
                 }
             }
 
-            uasort($data[$l], function($rule1, $rule2) {
+            uasort($data[$l], function ($rule1, $rule2) {
                 return strcmp($rule1['before'], $rule2['before']);
             });
         }
@@ -2964,7 +2980,7 @@ class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'weekData'));
+        parent::__construct('supplemental', ['supplemental', 'weekData']);
     }
 
     /**
@@ -2980,9 +2996,9 @@ class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
             if (!preg_match('/^[0-9]+$/', $value)) {
                 throw new Exception("Bad number: $value");
             }
-            $data['minDays'][$key] = intval($value);
+            $data['minDays'][$key] = (int) $value;
         }
-        $dict = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
+        $dict = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
         foreach (array_keys($data['firstDay']) as $key) {
             $val = array_search($data['firstDay'][$key], $dict, true);
             if ($val === false) {
@@ -3002,7 +3018,7 @@ class TerritoryContainmentSupplementalPunicConversion extends SupplementalPunicC
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'territoryContainment'));
+        parent::__construct('supplemental', ['supplemental', 'territoryContainment']);
     }
 
     /**
@@ -3034,7 +3050,7 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'metaZones'));
+        parent::__construct('supplemental', ['supplemental', 'metaZones']);
     }
 
     /**
@@ -3045,7 +3061,7 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
     public function process(array $data)
     {
         $data = parent::process($data);
-        $this->checkExactKeys($data['metazoneInfo'], array('timezone'));
+        $this->checkExactKeys($data['metazoneInfo'], ['timezone']);
         $data['metazoneInfo'] = $data['metazoneInfo']['timezone'];
         foreach ($data['metazoneInfo'] as $id0 => $info0) {
             foreach ($info0 as $id1 => $info1) {
@@ -3072,12 +3088,12 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
             }
             $data['metazoneInfo'][$id0] = $info0;
         }
-        $metazones = array();
+        $metazones = [];
         if ((!array_key_exists('metazones', $data)) && is_array($data['metazones']) && (count($data['metazones']) > 0)) {
             throw new Exception('metazones node not found/invalid');
         }
         foreach ($data['metazones'] as $mz) {
-            $this->checkExactKeys($mz, array('mapZone'));
+            $this->checkExactKeys($mz, ['mapZone']);
             $mz = $mz['mapZone'];
             foreach (array_keys($mz) as $i) {
                 switch ($i) {
@@ -3088,7 +3104,7 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
                         unset($mz[$i]);
                         break;
                     default:
-                        throw new Exception('Invalid mapZone node key: '.$i);
+                        throw new Exception('Invalid mapZone node key: ' . $i);
                 }
             }
             $metazones[] = $mz;
@@ -3107,7 +3123,7 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
      */
     private function fixMetazoneInfo($a)
     {
-        $this->checkExactKeys($a, array('usesMetazone'));
+        $this->checkExactKeys($a, ['usesMetazone']);
         $a = $a['usesMetazone'];
         foreach (array_keys($a) as $key) {
             switch ($key) {
@@ -3130,7 +3146,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct($type, $identifier)
     {
-        parent::__construct('supplemental', array('supplemental', 'plurals-type-'.$type), $identifier);
+        parent::__construct('supplemental', ['supplemental', 'plurals-type-' . $type], $identifier);
     }
 
     /**
@@ -3141,16 +3157,16 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
     private function realProcess(array $data)
     {
         $data = parent::process($data);
-        $testData = array();
+        $testData = [];
         foreach ($data as $l => $lData) {
-            $testData[$l] = array();
+            $testData[$l] = [];
             $keys = array_keys($lData);
             foreach ($keys as $key) {
                 if (!preg_match('/^pluralRule-count-(.+)$/', $key, $m)) {
                     throw new Exception("Invalid node '$key'");
                 }
                 $rule = $m[1];
-                $testData[$l][$rule] = array();
+                $testData[$l][$rule] = [];
                 $vOriginal = $lData[$key];
                 $examples = explode('@', $vOriginal);
                 $v = trim(array_shift($examples));
@@ -3160,18 +3176,18 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                         case 'integer':
                         case 'decimal':
                             $exampleValues = preg_replace('/, …$/', '', $exampleValues);
-                            $exampleValuesParsed = array();
+                            $exampleValuesParsed = [];
                             foreach (explode(', ', trim($exampleValues)) as $ev) {
                                 if (preg_match('/^[+\-]?\d+$/', $ev)) {
                                     $exampleValuesParsed[] = $ev;
-                                    $exampleValuesParsed[] = intval($ev);
+                                    $exampleValuesParsed[] = (int) $ev;
                                 } elseif (preg_match('/^[+\-]?\d+\.\d+$/', $ev)) {
                                     $exampleValuesParsed[] = $ev;
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
-                                    $exampleValuesParsed[] = intval($m[1]);
+                                    $exampleValuesParsed[] = (int) ($m[1]);
                                     $exampleValuesParsed[] = $m[2];
-                                    $exampleValuesParsed[] = intval($m[2]);
+                                    $exampleValuesParsed[] = (int) ($m[2]);
                                 } elseif (preg_match('/^([+\-]?\d+(\.\d+)?)~([+\-]?\d+(\.\d+)?)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
                                     $exampleValuesParsed[] = $m[3];
@@ -3191,10 +3207,10 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                     }
                 } else {
                     $v = str_replace(' = ', ' == ', $v);
-                    $map = array('==' => 'true', '!=' => 'false');
-                    foreach (array('^', ' and ', ' or ') as $pre) {
+                    $map = ['==' => 'true', '!=' => 'false'];
+                    foreach (['^', ' and ', ' or '] as $pre) {
                         while (preg_match(
-                            '/'.$pre.'(([nivfwft]( % \\d+)?) (==|!=) ((\\d+)(((\\.\\.)|,)+(\\d+))+))/',
+                            '/' . $pre . '(([nivfwft]( % \\d+)?) (==|!=) ((\\d+)(((\\.\\.)|,)+(\\d+))+))/',
                             $v,
                             $m
                         )) {
@@ -3207,21 +3223,21 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                     $ranges[$j] = "array({$m[1]}, {$m[2]})";
                                 }
                             }
-                            $v = str_replace($found, "static::inRange($leftyPart, {$map[$operator]}, ".implode(', ', $ranges).')', $v);
+                            $v = str_replace($found, "static::inRange($leftyPart, {$map[$operator]}, " . implode(', ', $ranges) . ')', $v);
                         }
                     }
                     if (strpos($v, '..') !== false) {
                         throw new Exception("Invalid node '$key': $vOriginal");
                     }
-                    foreach (array(
+                    foreach ([
                         'n' => '%1$s', // absolute value of the source number (integer and decimals).
                         'i' => '%2$s', // integer digits of n
                         'v' => '%3$s', // number of visible fraction digits in n, with trailing zeros.
                         'w' => '%4$s', // number of visible fraction digits in n, without trailing zeros.
                         'f' => '%5$s', // visible fractional digits in n, with trailing zeros.
                         't' => '%6$s', // visible fractional digits in n, without trailing zeros.
-                    ) as $from => $to) {
-                        $v = preg_replace('/^'.$from.' /', "$to ", $v);
+                    ] as $from => $to) {
+                        $v = preg_replace('/^' . $from . ' /', "$to ", $v);
                         $v = preg_replace("/^$from /", "$to ", $v);
                         $v = str_replace(" $from ", " $to ", $v);
                         $v = str_replace("($from, ", "($to, ", $v);
@@ -3236,7 +3252,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
             $data[$l] = $lData;
         }
 
-        return array($data, $testData);
+        return [$data, $testData];
     }
 
     /**
@@ -3268,7 +3284,7 @@ class MeasurementDataSupplementalPunicConversion extends SupplementalPunicConver
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'measurementData'));
+        parent::__construct('supplemental', ['supplemental', 'measurementData']);
     }
 
     /**
@@ -3294,7 +3310,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
 {
     public function __construct()
     {
-        parent::__construct('main', array('supplemental', 'currencyData'));
+        parent::__construct('main', ['supplemental', 'currencyData']);
     }
 
     /**
@@ -3305,17 +3321,17 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
     public function process(array $data)
     {
         $data = parent::process($data);
-        $keys = array('fractions', 'region');
+        $keys = ['fractions', 'region'];
         if ((count($data) !== count($keys)) || (count(array_diff($keys, array_keys($data))) !== 0)) {
             throw new Exception('Unexpected keys in currencyData.json');
         }
-        $final = array();
+        $final = [];
         if (!array_key_exists('DEFAULT', $data['fractions'])) {
             throw new Exception('Missing DEFAULT in currencyData.json');
         }
         $parseFraction = function ($info, $defaultValues) {
-            $result = array();
-            foreach (array('_digits' => 'digits', '_rounding' => 'rounding', '_cashDigits' => 'cashDigits', '_cashRounding' => 'cashRounding') as $keyFrom => $keyTo) {
+            $result = [];
+            foreach (['_digits' => 'digits', '_rounding' => 'rounding', '_cashDigits' => 'cashDigits', '_cashRounding' => 'cashRounding'] as $keyFrom => $keyTo) {
                 if (array_key_exists($keyTo, $info)) {
                     throw new Exception("$keyTo already exist in array");
                 }
@@ -3329,7 +3345,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
                             if (!preg_match('/^[0-9]+$/', $v)) {
                                 throw new Exception("$keyFrom is invalid");
                             }
-                            $v = intval($v);
+                            $v = (int) $v;
                             break;
                         default:
                             throw new Exception("$keyFrom is invalid");
@@ -3374,7 +3390,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
         };
         $final['fractionsDefault'] = $parseFraction($data['fractions']['DEFAULT'], true);
         unset($data['fractions']['DEFAULT']);
-        $final['fractions'] = array();
+        $final['fractions'] = [];
         foreach ($data['fractions'] as $currencyCode => $currencyInfo) {
             $currencyInfo = $parseFraction($currencyInfo, $final['fractionsDefault']);
             if (!empty($currencyInfo)) {
@@ -3382,7 +3398,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
             }
         }
         $parseRegion = function ($currencyInfo) {
-            $result = array();
+            $result = [];
             if (array_key_exists('_tender', $currencyInfo)) {
                 if ($currencyInfo['_tender'] !== 'false') {
                     throw new Exception('Invalid _tender value');
@@ -3390,7 +3406,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
                 unset($currencyInfo['_tender']);
                 $result['notTender'] = true;
             }
-            foreach (array('_from' => 'from', '_to' => 'to') as $keyFrom => $keyTo) {
+            foreach (['_from' => 'from', '_to' => 'to'] as $keyFrom => $keyTo) {
                 if (array_key_exists($keyFrom, $currencyInfo)) {
                     $v = $currencyInfo[$keyFrom];
                     unset($currencyInfo[$keyFrom]);
@@ -3401,7 +3417,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
                 }
             }
             if (!empty($currencyInfo)) {
-                throw new Exception('Unknown currency info keys found: '.implode(', ', array_keys($currencyInfo)));
+                throw new Exception('Unknown currency info keys found: ' . implode(', ', array_keys($currencyInfo)));
             }
             if (empty($result)) {
                 throw new Exception('Empty currency info');
@@ -3409,15 +3425,15 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
 
             return $result;
         };
-        $final['regions'] = array();
+        $final['regions'] = [];
         foreach ($data['region'] as $territoryCode => $territoryInfos) {
             if (is_int($territoryCode)) {
-                $territoryCode = substr('00'.$territoryCode, -3);
+                $territoryCode = substr('00' . $territoryCode, -3);
             }
-            $final['regions'][$territoryCode] = array();
+            $final['regions'][$territoryCode] = [];
             foreach ($territoryInfos as $territoryInfo) {
                 foreach ($territoryInfo as $currencyCode => $currencyInfo) {
-                    $final['regions'][$territoryCode][] = array_merge(array('currency' => $currencyCode), $parseRegion($currencyInfo));
+                    $final['regions'][$territoryCode][] = array_merge(['currency' => $currencyCode], $parseRegion($currencyInfo));
                 }
             }
             usort($final['regions'][$territoryCode], function ($a, $b) {
@@ -3453,7 +3469,7 @@ class CodeMappingsSupplementalPunicConversion extends SupplementalPunicConversio
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'codeMappings'));
+        parent::__construct('supplemental', ['supplemental', 'codeMappings']);
     }
 
     /**
@@ -3465,7 +3481,7 @@ class CodeMappingsSupplementalPunicConversion extends SupplementalPunicConversio
     {
         $mappings = parent::process($data);
 
-        $data = array();
+        $data = [];
         foreach ($mappings as $key => $mapping) {
             if (strlen($key) === 2) {
                 $type = 'territories';
@@ -3493,7 +3509,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'subdivisionContainment', 'subgroup'), 'subdivisionContainment');
+        parent::__construct('supplemental', ['supplemental', 'subdivisionContainment', 'subgroup'], 'subdivisionContainment');
     }
 
     /**
@@ -3503,7 +3519,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getSvnDirectory().'/common/supplemental/subdivisions.xml';
+        return $sourceData->getSvnDirectory() . '/common/supplemental/subdivisions.xml';
     }
 
     /**
@@ -3511,7 +3527,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
      */
     protected function getPaths()
     {
-        return array('/supplementalData/subdivisionContainment/subgroup' => array('type'));
+        return ['/supplementalData/subdivisionContainment/subgroup' => ['type']];
     }
 
     /**
@@ -3523,9 +3539,9 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
     {
         $sourceFile = $this->getSourceFile($sourceData);
 
-        $data = array(
+        $data = [
             'supplemental' => $this->loadXml($sourceFile),
-        );
+        ];
 
         return $data;
     }
@@ -3542,6 +3558,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
             $data[$key]['contains'] = explode(' ', $data[$key]['_contains']);
             unset($data[$key]['_contains']);
         }
+
         return $data;
     }
 }
@@ -3550,7 +3567,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
 {
     public function __construct()
     {
-        parent::__construct('supplemental', array('supplemental', 'keyword', 'key', 'type'), 'timeZones');
+        parent::__construct('supplemental', ['supplemental', 'keyword', 'key', 'type'], 'timeZones');
     }
 
     /**
@@ -3560,7 +3577,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getSvnDirectory().'/common/bcp47/timezone.xml';
+        return $sourceData->getSvnDirectory() . '/common/bcp47/timezone.xml';
     }
 
     /**
@@ -3568,7 +3585,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
      */
     protected function getPaths()
     {
-        return array('/ldmlBCP47/keyword/key/type' => array('alias'));
+        return ['/ldmlBCP47/keyword/key/type' => ['alias']];
     }
 
     /**
@@ -3580,9 +3597,9 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
     {
         $sourceFile = $this->getSourceFile($sourceData);
 
-        $data = array(
+        $data = [
             'supplemental' => $this->loadXml($sourceFile),
-        );
+        ];
 
         return $data;
     }
@@ -3595,7 +3612,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
     public function process(array $data)
     {
         $zones = parent::process($data);
-        $data = array();
+        $data = [];
         foreach (array_keys($zones) as $zone) {
             $aliases = explode(' ', $zone);
             if (count($aliases) > 1) {
@@ -3605,6 +3622,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
                 }
             }
         }
+
         return $data;
     }
 }
@@ -3615,7 +3633,7 @@ class StateFile
      * @var string
      */
     private $path;
-    
+
     /**
      * @var resource|null
      */
@@ -3638,9 +3656,9 @@ class StateFile
     {
         $this->path = $path;
         if (is_file($this->path)) {
-            $this->handle = @fopen($this->path, 'rb+');
+            $this->handle = @fopen($this->path, 'b+r');
         } else {
-            $this->handle = @fopen($this->path, 'wb+');
+            $this->handle = @fopen($this->path, 'b+w');
         }
         if (!is_resource($this->handle)) {
             throw new Exception("Failed to open state file {$this->path}");
@@ -3650,7 +3668,7 @@ class StateFile
         }
         $this->locked = true;
     }
-    
+
     private function close()
     {
         if (is_resource($this->handle)) {
@@ -3686,16 +3704,16 @@ class StateFile
             $json .= $chunk;
         }
         if ($json === '') {
-            $state = array(
-                'formats' => array(),
-            );
+            $state = [
+                'formats' => [],
+            ];
         } else {
             $state = @json_decode($json, true);
             if (!is_array($state)) {
                 throw new Exception("Failed to decode state file $path");
             }
             if (!isset($state['formats'])) {
-                $state['formats'] = array();
+                $state['formats'] = [];
             } elseif (!is_array($state['formats'])) {
                 throw new Exception("Invalid state file $path");
             }
