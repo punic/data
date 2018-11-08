@@ -176,7 +176,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_DRAFTSTATUS = CldrDraftStatus::LEVEL_UNCONFIRMED;
+    const DEFAULT_CLDR_DRAFTSTATUS = CldrDraftStatus::LEVEL_CONTRIBUTED;
 
     /**
      * Placeholder for all locales.
