@@ -1,1 +1,1 @@
-../nds/currencies.php
+../as/currencies.php

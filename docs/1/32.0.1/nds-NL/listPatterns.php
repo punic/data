@@ -1,1 +1,1 @@
-../nds/listPatterns.php
+../agq/listPatterns.php

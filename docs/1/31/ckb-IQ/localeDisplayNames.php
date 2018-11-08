@@ -1,1 +1,1 @@
-../ckb/localeDisplayNames.php
+../agq/localeDisplayNames.php

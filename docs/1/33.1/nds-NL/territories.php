@@ -1,1 +1,1 @@
-../../32.0.1/nds/territories.php
+../../32.0.1/cu/territories.php

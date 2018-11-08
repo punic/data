@@ -1,1 +1,1 @@
-../vo/languages.php
+../cu/languages.php

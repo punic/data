@@ -1,1 +1,1 @@
-../tk/languages.php
+../cu/languages.php

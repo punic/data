@@ -1,1 +1,1 @@
-../nds/languages.php
+../cu/languages.php

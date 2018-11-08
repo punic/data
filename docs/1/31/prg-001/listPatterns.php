@@ -1,1 +1,1 @@
-../prg/listPatterns.php
+../agq/listPatterns.php

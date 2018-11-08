@@ -1,1 +1,1 @@
-../kw/currencies.php
+../as/currencies.php

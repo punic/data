@@ -1,1 +1,1 @@
-../../32.0.1/km/timeZoneNames.php
+../km/timeZoneNames.php

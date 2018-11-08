@@ -1,1 +1,1 @@
-../../31/mt/numbers.php
+../mt/numbers.php

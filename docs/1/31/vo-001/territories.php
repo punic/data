@@ -1,1 +1,1 @@
-../vo/territories.php
+../cu/territories.php

@@ -1,1 +1,1 @@
-../eo/currencies.php
+../dua/currencies.php

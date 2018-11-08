@@ -1,1 +1,1 @@
-../nds/timeZoneNames.php
+../agq/timeZoneNames.php

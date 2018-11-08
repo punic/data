@@ -1,1 +1,1 @@
-../prg/currencies.php
+../as/currencies.php

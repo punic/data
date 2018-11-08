@@ -1,1 +1,1 @@
-../nds/numbers.php
+../as/numbers.php

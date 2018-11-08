@@ -1,1 +1,1 @@
-../prg/currencies.php
+../dua/currencies.php

@@ -1,1 +1,1 @@
-../../32.0.1/kl/listPatterns.php
+../../32.0.1/agq/listPatterns.php

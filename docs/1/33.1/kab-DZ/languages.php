@@ -1,1 +1,1 @@
-../kab/languages.php
+../../32.0.1/kab/languages.php

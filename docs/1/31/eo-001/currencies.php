@@ -1,1 +1,1 @@
-../eo/currencies.php
+../as/currencies.php

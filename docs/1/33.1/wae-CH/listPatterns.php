@@ -1,1 +1,1 @@
-../../32.0.1/wae/listPatterns.php
+../../32.0.1/gsw/listPatterns.php

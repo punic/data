@@ -1,1 +1,1 @@
-../vo/localeDisplayNames.php
+../agq/localeDisplayNames.php

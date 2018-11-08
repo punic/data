@@ -1,1 +1,1 @@
-../../32.0.1/root/languages.php
+../../32.0.1/cu/languages.php

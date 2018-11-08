@@ -1,1 +1,1 @@
-../../32.0.1/es-EC/calendar.php
+../../32.0.1/es-CR/calendar.php

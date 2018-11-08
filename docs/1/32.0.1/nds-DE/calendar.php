@@ -1,1 +1,1 @@
-../nds/calendar.php
+../cu/calendar.php

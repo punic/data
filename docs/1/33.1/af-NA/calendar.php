@@ -1,1 +1,1 @@
-../../32.0.1/af-NA/calendar.php
+../../32.0.1/af/calendar.php

@@ -1,1 +1,1 @@
-../kab/listPatterns.php
+../agq/listPatterns.php
