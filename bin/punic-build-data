@@ -18,6 +18,9 @@ try {
     checkEnvironment();
     echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
+    if ($options->shouldUseLibphonenumber()) {
+        echo 'Libphonenumber version   : ', $options->getLibphonenumberVersion(), "\n";
+    }
     echo 'CLDR draft status        : ', $options->getCLDRDraftStatus(), "\n";
     echo 'Processing locales       : ', $options->describeLocales(), "\n";
     echo 'Output directory         : ', str_replace('/', DIRECTORY_SEPARATOR, $options->getOutputDirectory()), "\n";
@@ -169,7 +172,14 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '33.1';
+    const DEFAULT_CLDR_VERSION = '34';
+
+    /**
+     * The default libphonenumber version.
+     *
+     * @var string
+     */
+    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.1';
 
     /**
      * The default CLDR draft status.
@@ -200,6 +210,33 @@ class BuildOptions
     public function getCLDRVersion()
     {
         return $this->cldrVersion;
+    }
+
+    /**
+     * The libphonenumber version.
+     *
+     * @var string
+     */
+    protected $libphonenumberVersion;
+
+    /**
+     * Get the libphonenumber version.
+     *
+     * @return string
+     */
+    public function getLibphonenumberVersion()
+    {
+        return $this->libphonenumberVersion;
+    }
+
+    /**
+     * Should we use libphonenumber instead of CLDR for telephone data?
+     *
+     * @return bool
+     */
+    public function shouldUseLibphonenumber()
+    {
+        return version_compare($this->getCLDRVersion(), '34') >= 0;
     }
 
     /**
@@ -302,7 +339,7 @@ class BuildOptions
     }
 
     /**
-     * @param null|mixed $cldrVersion
+     * @param string|null $cldrVersion
      *
      * @return string
      */
@@ -390,6 +427,7 @@ class BuildOptions
     protected function __construct()
     {
         $this->cldrVersion = static::DEFAULT_CLDR_VERSION;
+        $this->libphonenumberVersion = static::DEFAULT_LIBPHONENUMBER_VERSION;
         $this->cldrDraftStatus = static::DEFAULT_CLDR_DRAFTSTATUS;
         $this->resetCLDRData = false;
         $this->resetPunicData = false;
@@ -439,6 +477,17 @@ class BuildOptions
                         throw new UserMessageException("Invalid version specified ($nextOption)");
                     }
                     $result->cldrVersion = $nextOption;
+                    break;
+                case '--libphonenumber-version':
+                case '-w':
+                    $optionWithValue = true;
+                    if ($nextOption === '') {
+                        throw new UserMessageException('Please specify the libphonenumber version to be processed');
+                    }
+                    if (!preg_match('/^v[1-9]\d*(\.\d+)*$/', $nextOption)) {
+                        throw new UserMessageException("Invalid libphonenumber version specified ($nextOption)");
+                    }
+                    $result->libphonenumberVersion = $nextOption;
                     break;
                 case '--draft-status':
                 case '-d':
@@ -655,6 +704,7 @@ class BuildOptions
     protected static function showHelp()
     {
         $defaultCLDRVersion = static::DEFAULT_CLDR_VERSION;
+        $defaultLibphonenumberVersion = static::DEFAULT_LIBPHONENUMBER_VERSION;
         $allLocalesPlaceholders = static::ALL_LOCALES_PLACEHOLDER;
         $defaultOutputDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultOutputDirectory('<CLDR-VERSION>'));
         $defaultStateFile = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultStateFile());
@@ -669,6 +719,10 @@ Available options:
 
   --version=<version>|-v <version>
     Set the CLDR version to work on (default: $defaultCLDRVersion)
+    Examples: 31.d02  30.0.3  30  29.beta.1  25.M1  23.1.d01
+
+  --libphonenumber-version=<version>| -w <version>
+    Set the libphonenumber version to work on when using CLDR 34+ (default: $defaultLibphonenumberVersion)
     Examples: 31.d02  30.0.3  30  29.beta.1  25.M1  23.1.d01
 
   --draft-status|-d <$cldrDraftStatuses>
@@ -812,6 +866,14 @@ class SourceData
      * @var BuildOptions
      */
     protected $options;
+
+    /**
+     * @return BuildOptions
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
 
     /**
      * @var FileUtils
@@ -1509,7 +1571,6 @@ class CldrConverter
     public function convertSupplemental($destinationDirectory)
     {
         $converters = [
-            new TelephoneCodeDataSupplementalPunicConversion(),
             new TerritoryInfoSupplementalPunicConversion(),
             new TimeDataSupplementalPunicConversion(),
             new DayPeriodsSupplementalPunicConversion(),
@@ -1528,6 +1589,11 @@ class CldrConverter
             $converters[] = new SubdivisionsSupplementalPunicConversion();
             $converters[] = new TimeZoneSupplementalPunicConversion();
             $converters[] = new CodeMappingsSupplementalPunicConversion();
+        }
+        if ($this->options->shouldUseLibphonenumber()) {
+            $converters[] = new TelephoneCodeDataLibphonenumberPunicConversion();
+        } else {
+            $converters[] = new TelephoneCodeDataSupplementalPunicConversion();
         }
 
         $destinationFiles = [];
@@ -1954,7 +2020,7 @@ abstract class LocalePunicConversion extends PunicConversion
 {
     /**
      * @param SourceData $sourceData
-     * @param string     $localeID
+     * @param string $localeID
      *
      * @return array
      */
@@ -1989,8 +2055,8 @@ abstract class LocalePunicConversion extends PunicConversion
     }
 
     /**
-     * @param string $json
-     * @param mixed $localeID
+     * @param SourceData $sourceData
+     * @param string $localeID
      *
      * @return array
      */
@@ -2053,7 +2119,7 @@ class NoopLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         return parent::process($data, $localeID);
     }
@@ -2072,7 +2138,7 @@ class LanguagesLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $languages = parent::process($data, $localeID);
 
@@ -2092,7 +2158,7 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
 
     /**
      * @param SourceData $sourceData
-     * @param string     $localeID
+     * @param string $localeID
      *
      * @return string
      */
@@ -2107,7 +2173,7 @@ class CalendarLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         unset($data['dateTimeFormats']['appendItems']);
@@ -2138,7 +2204,7 @@ class TimeZoneNamesLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         foreach (array_keys($data) as $dataKey) {
@@ -2177,7 +2243,7 @@ class ListPatternsLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         $result = [];
@@ -2209,7 +2275,7 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         foreach (array_keys($data) as $width) {
@@ -2226,10 +2292,20 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                 unset($data[$width][$unitKey]);
                                 break;
                             case 'coordinateUnit':
+                                if ($data[$width][$unitKey]['displayName']) {
+                                    $displayName = $data[$width][$unitKey]['displayName'];
+                                    unset($data[$width][$unitKey]['displayName']);
+                                }
+                                else {
+                                    $displayName = null;
+                                }
                                 $this->checkExactKeys($data[$width][$unitKey], ['east', 'north', 'south', 'west']);
                                 $data[$width]['_coordinateUnit'] = [];
                                 foreach (array_keys($data[$width][$unitKey]) as $direction) {
                                     $data[$width]['_coordinateUnit'][$direction] = $this->toPhpSprintf($data[$width][$unitKey][$direction]);
+                                }
+                                if ($displayName !== null) {
+                                    $data[$width]['_coordinateUnit']['_displayName'] = $displayName;
                                 }
                                 unset($data[$width][$unitKey]);
                                 break;
@@ -2307,7 +2383,7 @@ class LocaleDisplayNamesLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         if (!array_key_exists('localeDisplayPattern', $data)) {
@@ -2340,7 +2416,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         $final = [];
@@ -2449,7 +2525,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         $final = [];
@@ -2661,7 +2737,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
      *
      * @return array
      */
-    public function process(array $data, $localeID)
+    protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
         $rulesets = [];
@@ -2753,7 +2829,7 @@ abstract class SupplementalPunicConversion extends PunicConversion
     /**
      * @param array $data
      */
-    protected function process(array $data)
+    protected function process($data)
     {
         $data = $this->simplify($data, $this->getRoots(), $this->getUnsetByPath());
 
@@ -2773,7 +2849,7 @@ class NoopSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         return parent::process($data);
     }
@@ -2791,7 +2867,7 @@ class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConv
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data) as $k) {
@@ -2813,9 +2889,115 @@ class TelephoneCodeDataSupplementalPunicConversion extends SupplementalPunicConv
                 }
                 $data[$k][] = $d[$i]['telephoneCountryCode'];
             }
+            sort($data[$k]);
         }
 
+        return $this->sortData($data);
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return array
+     */
+    protected function sortData(array $data)
+    {
+        foreach (array_keys($data) as $k) {
+            sort($data[$k]);
+        }
+        uksort($data, function ($a, $b) {
+            if (is_numeric($a)) {
+                if (is_numeric($b)) {
+                    return (int) $a - (int) $b;
+                }
+
+                return -1;
+            }
+            if (is_numeric($b)) {
+                return 1;
+            }
+
+            return strcasecmp($a, $b);
+        });
+
         return $data;
+    }
+}
+
+class TelephoneCodeDataLibphonenumberPunicConversion extends TelephoneCodeDataSupplementalPunicConversion
+{
+    protected $territoryMap = [
+        'TA' => 'SH', // Saint Helena, Ascension and Tristan da Cunha
+    ];
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see SupplementalPunicConversion::load()
+     */
+    protected function load(SourceData $sourceData)
+    {
+        $localFile = "{$sourceData->getOptions()->getTemporaryDirectory()}/PhoneNumberMetadata-{$sourceData->getOptions()->getLibphonenumberVersion()}.xml";
+        $url = "https://github.com/googlei18n/libphonenumber/raw/{$sourceData->getOptions()->getLibphonenumberVersion()}/resources/PhoneNumberMetadata.xml";
+        if (is_file($localFile)) {
+            $xmlData = @file_get_contents($localFile);
+            if (!$xmlData) {
+                @unlink($localFile);
+            }
+        } else {
+            $xmlData = false;
+        }
+        if (!$xmlData) {
+            $xmlData = @file_get_contents($url);
+            if (!$xmlData) {
+                throw new Exception("Failed to download libphonenumber data from {$url}");
+            }
+        }
+        $old = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+        $xml = simplexml_load_string($xmlData);
+        if ($xml === false) {
+            $msg = "Failed to parse XML from {$url}:";
+            foreach (libxml_get_errors() as $error) {
+                $msg .= "\n - line {$error->line}: $error->message";
+            }
+            libxml_clear_errors();
+            libxml_use_internal_errors($old);
+            throw new Exception($msg);
+        }
+        libxml_use_internal_errors($old);
+        if (!is_file($localFile)) {
+            @file_put_contents($localFile, $xmlData);
+        }
+
+        return $xml;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see SupplementalPunicConversion::convert()
+     */
+    protected function process($data)
+    {
+        /* @var SimpleXMLElement $data */
+        $telephoneCodeData = [];
+        $territories = $data->xpath('/phoneNumberMetadata/territories/territory[@id][@countryCode]');
+        foreach ($territories as $territory) {
+            $territoryID = (string) $territory['id'];
+            if (isset($this->territoryMap[$territoryID])) {
+                $territoryID = $this->territoryMap[$territoryID];
+            }
+            if (!isset($telephoneCodeData[$territoryID])) {
+                $telephoneCodeData[$territoryID] = [];
+            }
+            $phonePrefix = (string) $territory['countryCode'];
+            if (!in_array($phonePrefix, $telephoneCodeData[$territoryID], true)) {
+                $telephoneCodeData[$territoryID][] = $phonePrefix;
+            }
+        }
+
+        return $this->sortData($telephoneCodeData);
     }
 }
 
@@ -2831,7 +3013,7 @@ class TerritoryInfoSupplementalPunicConversion extends SupplementalPunicConversi
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         //http://www.unicode.org/reports/tr35/tr35-info.html#Supplemental_Territory_Information
@@ -2954,7 +3136,7 @@ class TimeDataSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data) as $key) {
@@ -2981,7 +3163,7 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data) as $l) {
@@ -3022,7 +3204,7 @@ class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data['minDays']) as $key) {
@@ -3060,7 +3242,7 @@ class TerritoryContainmentSupplementalPunicConversion extends SupplementalPunicC
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data) as $key) {
@@ -3092,7 +3274,7 @@ class MetaZonesSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         $this->checkExactKeys($data['metazoneInfo'], ['timezone']);
@@ -3294,7 +3476,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $dt = $this->realProcess($data);
 
@@ -3326,7 +3508,7 @@ class MeasurementDataSupplementalPunicConversion extends SupplementalPunicConver
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         if (!(array_key_exists('measurementSystem', $data) && is_array($data['measurementSystem']))) {
@@ -3352,7 +3534,7 @@ class CurrencyDataSupplementalPunicConversion extends SupplementalPunicConversio
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         $keys = ['fractions', 'region'];
@@ -3511,7 +3693,7 @@ class CodeMappingsSupplementalPunicConversion extends SupplementalPunicConversio
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $mappings = parent::process($data);
 
@@ -3585,7 +3767,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $data = parent::process($data);
         foreach (array_keys($data) as $key) {
@@ -3643,7 +3825,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
      *
      * @return array
      */
-    public function process(array $data)
+    protected function process($data)
     {
         $zones = parent::process($data);
         $data = [];

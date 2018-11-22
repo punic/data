@@ -8,7 +8,8 @@ RUN apk upgrade -U && \
         php7 \
         php7-json \
         php7-intl \
-        php7-dom
+        php7-dom \
+        php7-simplexml
 
 ENV PATH=$PATH:/punicdata/bin
 
