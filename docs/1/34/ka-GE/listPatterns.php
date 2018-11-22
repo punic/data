@@ -1,0 +1,1 @@
+../ka/listPatterns.php

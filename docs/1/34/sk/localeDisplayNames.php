@@ -1,0 +1,1 @@
+../../33.1/sk/localeDisplayNames.php

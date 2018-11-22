@@ -1,0 +1,1 @@
+../as/listPatterns.php

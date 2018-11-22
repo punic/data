@@ -1,0 +1,1 @@
+../sn/languages.php

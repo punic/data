@@ -1,0 +1,1 @@
+../jgo/languages.php

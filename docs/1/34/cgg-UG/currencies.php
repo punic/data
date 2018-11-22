@@ -1,0 +1,1 @@
+../cgg/currencies.php

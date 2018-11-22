@@ -1,0 +1,1 @@
+../ko/listPatterns.php
