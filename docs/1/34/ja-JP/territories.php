@@ -1,0 +1,1 @@
+../ja/territories.php

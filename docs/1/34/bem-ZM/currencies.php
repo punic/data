@@ -1,0 +1,1 @@
+../bem/currencies.php

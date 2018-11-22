@@ -1,0 +1,1 @@
+../th/languages.php

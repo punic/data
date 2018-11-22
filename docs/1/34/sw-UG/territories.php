@@ -1,0 +1,1 @@
+../sw/territories.php
