@@ -7,6 +7,9 @@ function handleError($errno, $errstr, $errfile, $errline)
 }
 set_error_handler('handleError');
 
+/**
+ * @var string[] $argv
+ */
 try {
     if (isset($argv) && is_array($argv) && count($argv) > 1) {
         $optionArray = array_values($argv);
@@ -450,6 +453,7 @@ class BuildOptions
         $result = new static();
         $localeOptions = [];
         $n = count($options);
+        $matches = null;
         for ($i = 0; $i < $n; ++$i) {
             if (preg_match('/^(--[^=]+)=(.*)$/', $options[$i], $matches)) {
                 $currentOption = $matches[1];
@@ -978,6 +982,7 @@ class SourceData
                 throw new Exception("Failed to retrieve the contents of the directory $dir");
             }
             $availableLocales = [];
+            $matches = null;
             foreach ($contents as $item) {
                 if (preg_match('/^(.+)\.xml$/', $item, $matches)) {
                     $localeID = $matches[1];
@@ -1293,6 +1298,7 @@ class LocaleIdentifier
             $rxRegion = '(?:[a-z]{2})|(?:[0-9]{3})';
             $rxVariant = '(?:[a-z0-9]{5,8})|(?:[0-9][a-z0-9]{3})';
             $rxSep = '[-_]';
+            $matches = null;
             if (is_string($localeIdentifier) && preg_match("/^($rxLanguage)(?:$rxSep($rxScript))?(?:$rxSep($rxRegion))?((?:$rxSep(?:$rxVariant))*)$/i", $localeIdentifier, $matches)) {
                 $result = new static();
                 $result->language = strtolower($matches[1]);
@@ -2247,7 +2253,8 @@ class ListPatternsLocalePunicConversion extends LocalePunicConversion
     {
         $data = parent::process($data, $localeID);
         $result = [];
-        foreach ($data as $patternType => $patternData) {
+        $m = null;
+        foreach (array_keys($data) as $patternType) {
             if (!preg_match('/^listPattern-type-(.+)$/', $patternType, $m)) {
                 throw new Exception("Invalid list patterns node '$patternType'");
             }
@@ -2278,6 +2285,7 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
     protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
+        $m = null;
         foreach (array_keys($data) as $width) {
             switch ($width) {
                 case 'long':
@@ -2420,6 +2428,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
     {
         $data = parent::process($data, $localeID);
         $final = [];
+        $m = null;
         foreach ($data as $key => $value) {
             if (preg_match('/^([a-z]+)-numberSystem-([a-z]+)$/i', $key, $m)) {
                 $keyPrefix = $m[1];
@@ -2529,6 +2538,7 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
     {
         $data = parent::process($data, $localeID);
         $final = [];
+        $m = null;
         foreach ($data as $currencyCode => $currencyInfo) {
             if (!preg_match('/^[A-Z]{3}$/', $currencyCode)) {
                 throw new Exception("Invalid currency code: $currencyCode");
@@ -3374,6 +3384,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
     {
         $data = parent::process($data);
         $testData = [];
+        $m = null;
         foreach ($data as $l => $lData) {
             $testData[$l] = [];
             $keys = array_keys($lData);
