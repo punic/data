@@ -3433,28 +3433,30 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                         throw new Exception("Invalid node '$key': $vOriginal");
                     }
                 } else {
-                    $v = str_replace(' = ', ' == ', $v);
-                    $map = ['==' => 'true', '!=' => 'false'];
-                    foreach (['^', ' and ', ' or '] as $pre) {
-                        while (preg_match(
-                            '/' . $pre . '(([nivfwft]( % \\d+)?) (==|!=) ((\\d+)(((\\.\\.)|,)+(\\d+))+))/',
-                            $v,
-                            $m
-                        )) {
-                            $found = $m[1];
-                            $leftyPart = $m[2]; // eg 'n % 10'
-                                $operator = $m[4]; // eg '=='
-                                $ranges = explode(',', $m[5]);
-                            foreach (array_keys($ranges) as $j) {
-                                if (preg_match('/^(\\d+)\\.\\.(\\d+)$/', $ranges[$j], $m)) {
-                                    $ranges[$j] = "array({$m[1]}, {$m[2]})";
-                                }
+                    $v = preg_replace('/ ?!= ?/', ' != ', $v);
+                    $v = preg_replace('/([^!]) ?= ?/', '\1 == ', $v);
+                    $v = preg_replace('/ ?% ?/', ' % ', $v);
+                    $map = [' == ' => 'true', ' != ' => 'false'];
+                    $startPattern = '^| and | or ';
+                    $leftPattern = '[nivfwft](?: % \d+)?';
+                    $operatorPattern = ' == | != ';
+                    $rightPattern = '\d+(?:(?:\.\.|,)\d+)+';
+                    while (preg_match("/(?:$startPattern)(($leftPattern)($operatorPattern)($rightPattern))/", $v, $m)) {
+                        $found = $m[1];
+                        $left = $m[2]; // eg 'n % 10'
+                        $operator = $m[3]; // eg '=='
+                        $right =$m[4];
+                        $ranges = explode(',', $right);
+                        foreach (array_keys($ranges) as $j) {
+                            if (preg_match('/^(\\d+)\\.\\.(\\d+)$/', $ranges[$j], $m)) {
+                                $ranges[$j] = "array({$m[1]}, {$m[2]})";
                             }
-                            $v = str_replace($found, "static::inRange($leftyPart, {$map[$operator]}, " . implode(', ', $ranges) . ')', $v);
                         }
+                        $replace = "static::inRange($left, {$map[$operator]}, " . implode(', ', $ranges) . ')';
+                        $v = str_replace($found, $replace, $v);
                     }
                     if (strpos($v, '..') !== false) {
-                        throw new Exception("Invalid node '$key': $vOriginal");
+                        throw new Exception("Invalid node '$key': $vOriginal (not converted part: \"{$v}\"");
                     }
                     foreach ([
                         'n' => '%1$s', // absolute value of the source number (integer and decimals).
