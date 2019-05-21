@@ -33,15 +33,15 @@ try {
     $fileUtils = new FileUtils();
     $sourceData = new SourceData($options, $fileUtils);
     if ($options->getResetCLDRData()) {
-        if ($sourceData->isSvnPresent()) {
-            echo 'Deleting the SVN repository... ';
-            $sourceData->deleteSvnRepository();
+        if ($sourceData->isRepositoryPresent()) {
+            echo 'Deleting the repository... ';
+            $sourceData->deleteRepository();
             echo "done.\n";
         }
     }
-    if (!$sourceData->isSvnPresent()) {
-        echo 'Checking out the CLDR repository... ';
-        $sourceData->ensureSvnPresent();
+    if (!$sourceData->isRepositoryPresent()) {
+        echo 'Cloning the CLDR repository... ';
+        $sourceData->ensureRepositoryPresent();
         echo "done.\n";
     }
     $locales = $options->finalizeLocalesList($sourceData->getAvailableLocales());
@@ -136,9 +136,9 @@ function checkEnvironment()
     }
     $output = [];
     $rc = null;
-    @exec('svn --version 2>&1', $output, $rc);
+    @exec('git --version 2>&1', $output, $rc);
     if ($rc !== 0) {
-        throw new UserMessageException('Missing SVN command');
+        throw new UserMessageException('Missing GIT command');
     }
     $output = [];
     $rc = null;
@@ -900,50 +900,50 @@ class SourceData
     }
 
     /**
-     * Get the SVN directory path.
+     * Get the repository directory path.
      *
      * @return string
      */
-    public function getSvnDirectory()
+    public function getRepositoryDirectory()
     {
-        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/svn';
+        return $this->options->getTemporaryDirectory() . '/cldr/' . $this->options->getCLDRVersion() . '/repository';
     }
 
     /**
-     * There's a local clone of the SVN repository?
+     * There's a local clone of the repository?
      *
      * @return bool
      */
-    public function isSvnPresent()
+    public function isRepositoryPresent()
     {
-        return is_dir($this->getSvnDirectory());
+        return is_dir($this->getRepositoryDirectory());
     }
 
     /**
-     * Delete the local clone of the SVN repository.
+     * Delete the local clone of the repository.
      */
-    public function deleteSvnRepository()
+    public function deleteRepository()
     {
-        $this->fileUtils->deleteFromFilesystem($this->getSvnDirectory());
+        $this->fileUtils->deleteFromFilesystem($this->getRepositoryDirectory());
         $this->availableLocales = null;
     }
 
     /**
-     * Be sure that there's a local clone of the SVN repository.
+     * Be sure that there's a local clone of the repository.
      *
      * @throws Exception
      */
-    public function ensureSvnPresent()
+    public function ensureRepositoryPresent()
     {
-        if (!$this->isSvnPresent()) {
-            $dir = $this->getSvnDirectory();
+        if (!$this->isRepositoryPresent()) {
+            $dir = $this->getRepositoryDirectory();
             $this->fileUtils->createDirectory($dir);
             $this->fileUtils->deleteFromFilesystem($dir);
             try {
                 $tag = 'release-' . str_replace('.', '-', $this->options->getCLDRVersion());
                 $output = [];
                 $rc = null;
-                @exec('svn checkout http://www.unicode.org/repos/cldr/tags/' . $tag . '/ ' . argToShell($dir) . ' 2>&1', $output, $rc);
+                @exec('git clone  --depth 1 --single-branch --depth 1 --branch ' . argToShell($tag) . ' -- https://github.com/unicode-org/cldr.git ' . argToShell($dir) . ' 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_dir($dir)) {
                         $rc = -1;
@@ -954,7 +954,7 @@ class SourceData
                 }
             } catch (Exception $x) {
                 try {
-                    $this->deleteSvnRepository();
+                    $this->deleteRepository();
                 } catch (Exception $foo) {
                 }
                 throw $x;
@@ -972,8 +972,8 @@ class SourceData
     public function getAvailableLocales()
     {
         if ($this->availableLocales === null) {
-            $this->ensureSvnPresent();
-            $dir = $this->getSvnDirectory() . '/common/main';
+            $this->ensureRepositoryPresent();
+            $dir = $this->getRepositoryDirectory() . '/common/main';
             if (!is_dir($dir)) {
                 throw new Exception("Unable to find the directory $dir");
             }
@@ -1016,7 +1016,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getSvnDirectory() . '/tools/java/cldr.jar';
+        return $this->getRepositoryDirectory() . '/tools/java/cldr.jar';
     }
 
     /**
@@ -1045,12 +1045,12 @@ class SourceData
     public function ensureJarPresent()
     {
         if (!$this->isJarPresent()) {
-            $this->ensureSvnPresent();
+            $this->ensureRepositoryPresent();
             $file = $this->getJarFile();
             try {
                 $output = [];
                 $rc = null;
-                @exec('ant -f ' . argToShell($this->getSvnDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
@@ -1139,7 +1139,7 @@ class SourceData
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
-                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getSvnDirectory()); //  where the CLDR data is located
+                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
                 $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
@@ -1209,7 +1209,7 @@ class SourceData
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
-                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getSvnDirectory()); //  where the CLDR data is located
+                $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
                 $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
@@ -2634,7 +2634,7 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        return $sourceData->getSvnDirectory() . '/common/subdivisions/' . $localeID . '.xml';
+        return $sourceData->getRepositoryDirectory() . '/common/subdivisions/' . $localeID . '.xml';
     }
 
     /**
@@ -3746,7 +3746,7 @@ class SubdivisionsSupplementalPunicConversion extends SupplementalPunicConversio
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getSvnDirectory() . '/common/supplemental/subdivisions.xml';
+        return $sourceData->getRepositoryDirectory() . '/common/supplemental/subdivisions.xml';
     }
 
     /**
@@ -3804,7 +3804,7 @@ class TimeZoneSupplementalPunicConversion extends SupplementalPunicConversion
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getSvnDirectory() . '/common/bcp47/timezone.xml';
+        return $sourceData->getRepositoryDirectory() . '/common/bcp47/timezone.xml';
     }
 
     /**
