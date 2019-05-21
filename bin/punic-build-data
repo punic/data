@@ -175,14 +175,14 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '34';
+    const DEFAULT_CLDR_VERSION = '35.1';
 
     /**
      * The default libphonenumber version.
      *
      * @var string
      */
-    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.1';
+    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.12';
 
     /**
      * The default CLDR draft status.
