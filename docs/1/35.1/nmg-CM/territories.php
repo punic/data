@@ -1,0 +1,1 @@
+../nmg/territories.php

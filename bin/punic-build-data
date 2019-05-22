@@ -105,12 +105,12 @@ try {
     }
 
     echo 'Processing supplemental files... ';
-    $supplementalFiles = $converter->convertSupplemental($options->getOutputDirectory());
+    list($supplementalFiles, $testFiles) = $converter->convertSupplemental($options->getOutputDirectory());
     echo "done.\n";
 
     if ($options->getUpdateStateFile()) {
         echo 'Writing state file... ';
-        StateFile::write($options->getStateFile(), $options->getCLDRVersion(), $locales, $localeFiles, $supplementalFiles);
+        StateFile::write($options->getStateFile(), $options->getCLDRVersion(), $locales, $localeFiles, $supplementalFiles, $testFiles);
         echo "done.\n";
     }
     exit(0);
@@ -1572,7 +1572,7 @@ class CldrConverter
      *
      * @throws Exception
      *
-     * @return string[]
+     * @return string[][]
      */
     public function convertSupplemental($destinationDirectory)
     {
@@ -1602,21 +1602,26 @@ class CldrConverter
             $converters[] = new TelephoneCodeDataSupplementalPunicConversion();
         }
 
-        $destinationFiles = [];
+        $supplementalFiles = [];
+        $testFiles = [];
         foreach ($converters as $converter) {
             $destinationFile = $destinationDirectory . '/' . $converter->getIdentifier() . '.php';
-            $destinationFiles[] = $destinationFile;
+            $supplementalFiles[] = $destinationFile;
             if (!is_file($destinationFile)) {
                 $data = $converter->convert($this->sourceData);
                 $this->phpWriter->save($data, $destinationFile);
             }
+            if ($converter instanceof PluralsSupplementalPunicConversion && $converter->getIdentifier() === 'plurals') {
+                $destinationFile = $destinationDirectory . '/__test.plurals.php';
+                $testFiles[] = $destinationFile;
+                if (!is_file($destinationFile)) {
+                    $data = $converter->convertTestData($this->sourceData);
+                    $this->phpWriter->save($data, $destinationFile);
+                }
+            }
         }
 
-        $testDir = $this->options->getTemporaryDirectory() . '/testsDataFiles/' . BuildOptions::FORMAT_VERSION;
-        $this->fileUtils->createDirectory($testDir);
-        copy($destinationDirectory . '/plurals.php', $testDir . '/plurals.php');
-
-        return $destinationFiles;
+        return [$supplementalFiles, $testFiles];
     }
 
     /**
@@ -3497,12 +3502,13 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
     }
 
     /**
-     * @param array $data
+     * @param SourceData $sourceData
      *
      * @return array
      */
-    public function getTestData(array $data)
+    public function convertTestData(SourceData $sourceData)
     {
+        $data = $this->load($sourceData);
         $dt = $this->realProcess($data);
 
         return $dt[1];
@@ -3918,7 +3924,7 @@ class StateFile
         $this->close();
     }
 
-    public static function write($path, $cldrVersion, array $locales, array $localeFiles, array $supplementalFiles)
+    public static function write($path, $cldrVersion, array $locales, array $localeFiles, array $supplementalFiles, array $testFiles = [])
     {
         $me = new static($path);
         $json = '';
@@ -3960,6 +3966,10 @@ class StateFile
             'localeFiles' => array_map('basename', $localeFiles),
             'supplementalFiles' => array_map('basename', $supplementalFiles),
         ];
+        if (count($testFiles) > 0) {
+            sort($testFiles);
+            $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'][$cldrVersion]['testFiles'] = array_map('basename', $testFiles);
+        }
         $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
             throw new Exception("Failed to encode state file $path");

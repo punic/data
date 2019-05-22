@@ -1,0 +1,1 @@
+../../34/bs-Cyrl/listPatterns.php

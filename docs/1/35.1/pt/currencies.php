@@ -1,0 +1,1 @@
+../../34/pt/currencies.php

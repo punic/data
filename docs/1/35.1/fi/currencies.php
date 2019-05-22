@@ -1,0 +1,1 @@
+../../34/fi/currencies.php

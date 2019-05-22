@@ -1,0 +1,1 @@
+../../34/es-EC/currencies.php

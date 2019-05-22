@@ -1,0 +1,1 @@
+../../34/en-FK/currencies.php

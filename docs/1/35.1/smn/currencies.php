@@ -1,0 +1,1 @@
+../../34/smn/currencies.php

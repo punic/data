@@ -1,0 +1,1 @@
+../cgg/territories.php

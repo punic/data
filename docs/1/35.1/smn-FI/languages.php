@@ -1,0 +1,1 @@
+../smn/languages.php

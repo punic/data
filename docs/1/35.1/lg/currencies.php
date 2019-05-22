@@ -1,0 +1,1 @@
+../../34/lg/currencies.php

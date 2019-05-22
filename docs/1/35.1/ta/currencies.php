@@ -1,0 +1,1 @@
+../../34/ta/currencies.php

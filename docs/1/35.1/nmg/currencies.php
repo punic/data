@@ -1,0 +1,1 @@
+../../34/nmg/currencies.php

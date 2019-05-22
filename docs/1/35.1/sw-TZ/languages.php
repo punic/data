@@ -1,0 +1,1 @@
+../sw/languages.php

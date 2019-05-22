@@ -1,0 +1,1 @@
+../../34/vai-Latn/currencies.php

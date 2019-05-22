@@ -1,0 +1,1 @@
+../../34/ky/currencies.php
