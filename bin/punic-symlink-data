@@ -300,7 +300,7 @@ class Symlinker
     public function addDirectory($fullDirectoryPath)
     {
         $subdirectories = array();
-        echo "Reading directory {$fullDirectoryPath}...";
+        echo "Reading directory {$fullDirectoryPath}... ";
         $hDir = @opendir($fullDirectoryPath);
         if ($hDir === false) {
             throw new Exception("Failed to open the directory {$fullDirectoryPath}");
