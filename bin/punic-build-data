@@ -175,14 +175,14 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '35.1';
+    const DEFAULT_CLDR_VERSION = '36';
 
     /**
      * The default libphonenumber version.
      *
      * @var string
      */
-    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.12';
+    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.22';
 
     /**
      * The default CLDR draft status.
@@ -727,7 +727,6 @@ Available options:
 
   --libphonenumber-version=<version>| -w <version>
     Set the libphonenumber version to work on when using CLDR 34+ (default: $defaultLibphonenumberVersion)
-    Examples: 31.d02  30.0.3  30  29.beta.1  25.M1  23.1.d01
 
   --draft-status|-d <$cldrDraftStatuses>
     The minimum level of the draft status of the CLDR data to be accepted (default: $cldrDefaultDraftStatus)
@@ -2302,6 +2301,11 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                             case 'per':
                                 $this->checkExactKeys($data[$width][$unitKey], ['compoundUnitPattern']);
                                 $data[$width]['_compoundPattern'] = $this->toPhpSprintf($data[$width][$unitKey]['compoundUnitPattern']);
+                                unset($data[$width][$unitKey]);
+                                break;
+                            case 'times':
+                                $this->checkExactKeys($data[$width][$unitKey], ['compoundUnitPattern']);
+                                $data[$width]['_compoundPatternX'] = $this->toPhpSprintf($data[$width][$unitKey]['compoundUnitPattern']);
                                 unset($data[$width][$unitKey]);
                                 break;
                             case 'coordinateUnit':
