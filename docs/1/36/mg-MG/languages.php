@@ -1,0 +1,1 @@
+../mg/languages.php
