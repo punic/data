@@ -1539,7 +1539,7 @@ class CldrConverter
                 new RbnfLocalePunicConversion(),
             ];
             if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
-                $converters[] = new SubdivisionsLocalePunicConversion();
+                $converters[] = new SubdivisionsLocalePunicConversion($destinationDirectory . '/localeDisplayNames.php');
             }
 
             foreach ($converters as $converter) {
@@ -2630,9 +2630,16 @@ class CurrenciesLocalePunicConversion extends LocalePunicConversion
 
 class SubdivisionsLocalePunicConversion extends LocalePunicConversion
 {
-    public function __construct()
+    /**
+     * @var string
+     */
+    private $localeDisplayNamesFile;
+
+    public function __construct($localeDisplayNamesFile)
     {
         parent::__construct('subdivisions', ['localeDisplayNames', 'subdivisions', 'subdivision'], 'subdivisions');
+
+        $this->localeDisplayNamesFile = $localeDisplayNamesFile;
     }
 
     /**
@@ -2665,10 +2672,19 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
         $locale = LocaleIdentifier::fromString($localeID);
         $localeIDs = array_merge([$localeID], $locale->getParentLocaleIdentifiers(), ['en']);
 
+        // As of CLDR 36, England, Scotland and Wales are not stored in the subdivisions/*.xml.
+        $localeDisplayNames = require $this->localeDisplayNamesFile;
+
         $key = str_replace('_', '-', $localeID);
         $data = [
             $this->type => [
-                $key => [],
+                $key => [
+                    'localeDisplayNames' => [
+                        'subdivisions' => [
+                            'subdivision' => $localeDisplayNames['subdivisions'] ?? [],
+                        ],
+                    ],
+                ],
             ],
         ];
 
@@ -2678,6 +2694,8 @@ class SubdivisionsLocalePunicConversion extends LocalePunicConversion
                 $data[$this->type][$key] = $this->loadXml($sourceFile, $data[$this->type][$key]);
             }
         }
+
+        uksort($data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'], 'strcasecmp');
 
         return $data;
     }
