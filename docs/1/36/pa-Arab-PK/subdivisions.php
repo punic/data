@@ -1,1 +1,1 @@
-../pa/subdivisions.php
+../pa-Arab/subdivisions.php

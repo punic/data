@@ -1,1 +1,1 @@
-../bs/subdivisions.php
+../bs-Cyrl/subdivisions.php

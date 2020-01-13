@@ -1,1 +1,1 @@
-../az/subdivisions.php
+../az-Cyrl/subdivisions.php
