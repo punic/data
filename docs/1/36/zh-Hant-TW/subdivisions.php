@@ -1,1 +1,1 @@
-../zh/subdivisions.php
+../zh-Hant/subdivisions.php
