@@ -1,0 +1,105 @@
+From 52ce8af74cc55872f1d9c391dc3d1848eb0d0812 Mon Sep 17 00:00:00 2001
+From: John Emmons <emmo@us.ibm.com>
+Date: Wed, 9 Oct 2019 11:48:26 -0500
+Subject: [PATCH] CLDR-13351 Update JSON utilities for changes in CLDR 36
+
+---
+ .../java/org/unicode/cldr/json/CldrItem.java  | 35 +++++++++----------
+ .../unicode/cldr/json/Ldml2JsonConverter.java |  2 +-
+ .../unicode/cldr/json/LdmlConvertRules.java   |  7 ++--
+ 3 files changed, 20 insertions(+), 24 deletions(-)
+
+diff --git a/tools/java/org/unicode/cldr/json/CldrItem.java b/tools/java/org/unicode/cldr/json/CldrItem.java
+index 347ee968f8c..f74ef31be94 100644
+--- a/tools/java/org/unicode/cldr/json/CldrItem.java
++++ b/tools/java/org/unicode/cldr/json/CldrItem.java
+@@ -222,34 +222,31 @@ public void setPath(String path) {
+         XPathParts untransformedxpp = XPathParts.getFrozenInstance(untransformedPath);
+         XPathParts untransformedfullxpp = XPathParts.getFrozenInstance(untransformedFullPath);
+ 
+-        XPathParts newxpp = new XPathParts();
+-        XPathParts newfullxpp = new XPathParts();
+-        XPathParts untransformednewxpp = new XPathParts();
+-        XPathParts untransformednewfullxpp = new XPathParts();
+-
+         for (SplittableAttributeSpec s : LdmlConvertRules.SPLITTABLE_ATTRS) {
+             if (fullxpp.containsElement(s.element) && fullxpp.containsAttribute(s.attribute)) {
+                 ArrayList<CldrItem> list = new ArrayList<CldrItem>();
+                 String wordString = fullxpp.findAttributeValue(s.element, s.attribute);
+                 String[] words = null;
+                 words = wordString.trim().split("\\s+");
+-                XPathParts[] newparts = { newxpp, newfullxpp, untransformednewxpp, untransformednewfullxpp };
+-                XPathParts[] trparts = { newxpp, newfullxpp };
+                 for (String word : words) {
+-                    newxpp.set(xpp);
+-                    newfullxpp.set(fullxpp);
+-                    untransformednewxpp.set(untransformedxpp);
+-                    untransformednewfullxpp.set(untransformedfullxpp);
+-                    for (XPathParts np : newparts) {
+-                        np.setAttribute(s.element, s.attribute, word);
+-                    }
++                    XPathParts newxpp = XPathParts.getInstance(xpp.toString());
++                    XPathParts newfullxpp = XPathParts.getInstance(fullxpp.toString());
++                    XPathParts untransformednewxpp = XPathParts.getInstance(untransformedxpp.toString());
++                    XPathParts untransformednewfullxpp = XPathParts.getInstance(untransformedfullxpp.toString());
++
++                    newxpp.setAttribute(s.element, s.attribute, word);
++                    newfullxpp.setAttribute(s.element, s.attribute, word);
++                    untransformednewxpp.setAttribute(s.element, s.attribute, word);
++                    untransformednewfullxpp.setAttribute(s.element, s.attribute, word);
++
+                     if (s.attrAsValueAfterSplit != null) {
+                         String newValue = fullxpp.findAttributeValue(s.element, s.attrAsValueAfterSplit);
+-                        for (XPathParts np : trparts) {
+-                            np.removeAttribute(s.element, s.attrAsValueAfterSplit);
+-                            np.removeAttribute(s.element, s.attribute);
+-                            np.addElement(word);
+-                        }
++                        newxpp.removeAttribute(s.element, s.attrAsValueAfterSplit);
++                        newxpp.removeAttribute(s.element, s.attribute);
++                        newxpp.addElement(word);
++                        newfullxpp.removeAttribute(s.element, s.attrAsValueAfterSplit);
++                        newfullxpp.removeAttribute(s.element, s.attribute);
++                        newfullxpp.addElement(word);
+                         list.add(new CldrItem(newxpp.toString(), newfullxpp.toString(), untransformednewxpp.toString(), untransformednewfullxpp.toString(),
+                             newValue));
+                     } else {
+diff --git a/tools/java/org/unicode/cldr/json/Ldml2JsonConverter.java b/tools/java/org/unicode/cldr/json/Ldml2JsonConverter.java
+index 93ccab5c0a7..7e3f64dc08c 100644
+--- a/tools/java/org/unicode/cldr/json/Ldml2JsonConverter.java
++++ b/tools/java/org/unicode/cldr/json/Ldml2JsonConverter.java
+@@ -707,7 +707,7 @@ public void writePackageJson(String outputDir, String packageName) throws IOExce
+         licenses.add(UnicodeLicense);
+         obj.add("licenses", licenses);
+ 
+-        obj.addProperty("bugs", "http://unicode.org/cldr/trac/newticket");
++        obj.addProperty("bugs", "https://unicode-org.atlassian.net/projects/CLDR/issues");
+ 
+         outf.println(gson.toJson(obj));
+         outf.close();
+diff --git a/tools/java/org/unicode/cldr/json/LdmlConvertRules.java b/tools/java/org/unicode/cldr/json/LdmlConvertRules.java
+index a8335c28031..e0b58e4ba24 100644
+--- a/tools/java/org/unicode/cldr/json/LdmlConvertRules.java
++++ b/tools/java/org/unicode/cldr/json/LdmlConvertRules.java
+@@ -372,11 +372,11 @@ public static boolean IsSuppresedAttr(String attr) {
+         new PathTransformSpec("(.*ldml/exemplarCharacters)(.*)$", "$1/standard$2"),
+ 
+         // Add cldrVersion attribute
+-        new PathTransformSpec("(.*/identity/version\\[@number=\"([^\"]*)\")(\\])", "$1" + "\\]\\[@cldrVersion=\""
++        new PathTransformSpec("(.+)/identity/version\\[@number=\"([^\"]*)\"\\]", "$1" + "/identity/version\\[@cldrVersion=\""
+             + CLDRFile.GEN_VERSION + "\"\\]"),
+         // Add cldrVersion attribute to supplemental data
+-        new PathTransformSpec("(.*/version\\[@number=\"([^\"]*)\")(\\])\\[@unicodeVersion=\"([^\"]*\")(\\])", "$1" + "\\]\\[@cldrVersion=\""
+-            + CLDRFile.GEN_VERSION + "\"\\]" + "\\[@unicodeVersion=\"" + "$4" + "\\]"),
++        new PathTransformSpec("(.+)/version\\[@number=\"([^\"]*)\"\\]\\[@unicodeVersion=\"([^\"]*\")(\\])", "$1" + "/version\\[@cldrVersion=\""
++            + CLDRFile.GEN_VERSION + "\"\\]" + "\\[@unicodeVersion=\"" + "$3" + "\\]"),
+ 
+         // Transform underscore to hyphen-minus in language keys
+         new PathTransformSpec("(.*/language\\[@type=\"[a-z]{2,3})_([^\"]*\"\\](\\[@alt=\"short\"])?)", "$1-$2"),
+@@ -437,6 +437,5 @@ public static boolean IsSuppresedAttr(String attr) {
+         new PathTransformSpec("(.*)/weekData/(.*)\\[@alt=\"variant\"\\](.*)", "$1/weekData/$2$3"),
+         new PathTransformSpec("(.*)/unitPreferenceData/unitPreferences\\[@category=\"([^\"]*)\"\\]\\[@usage=\"([^\"]*)\"\\](.*)",
+             "$1/unitPreferenceData/unitPreferences/$2/$3$4"),
+-
+     };
+ }
