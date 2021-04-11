@@ -1142,11 +1142,12 @@ class SourceData
             $dir = $this->getJsonDirectoryForLocale($localeID);
             $this->fileUtils->createDirectory($dir);
             $this->fileUtils->deleteFromFilesystem($dir);
+            $genDir = version_compare($this->getOptions()->getCLDRVersion(), '38') >= 0 ? dirname($dir) : $dir;
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
                 $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($dir); // where to save the generated files
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($genDir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
