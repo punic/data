@@ -951,6 +951,13 @@ class SourceData
                 if ($rc !== 0) {
                     throw new Exception("Error $rc!\nError details:\n" . implode("\n", $output));
                 }
+                $patchFile = str_replace('/', DIRECTORY_SEPARATOR, dirname(dirname(__FILE__)) . '/patch/cldr/' . $this->getOptions()->getCLDRVersion() . '.patch');
+                if (is_file($patchFile)) {
+                    @exec('git -C ' . argToShell($dir) . ' apply ' . argToShell($patchFile) . ' 2>&1', $output, $rc);
+                    if ($rc !== 0) {
+                        throw new Exception("Error $rc!\nError details:\n" . implode("\n", $output));
+                    }
+                }
             } catch (Exception $x) {
                 try {
                     $this->deleteRepository();
