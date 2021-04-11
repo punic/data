@@ -2130,17 +2130,6 @@ class NoopLocalePunicConversion extends LocalePunicConversion
     {
         parent::__construct('main', $roots, $identitifier);
     }
-
-    /**
-     * @param array $data
-     * @param string $localeID
-     *
-     * @return array
-     */
-    protected function process(array $data, $localeID)
-    {
-        return parent::process($data, $localeID);
-    }
 }
 
 class LanguagesLocalePunicConversion extends LocalePunicConversion
@@ -2335,11 +2324,23 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                 unset($data[$width][$unitKey]);
                                 break;
                             default:
+                                if (preg_match('/^\d\d+p\d+$/', $unitKey)) {
+                                    // @todo
+                                    continue 2;
+                                }
+                                if (preg_match('/^power\d+$/', $unitKey)) {
+                                    // @todo
+                                    continue 2;
+                                }
                                 if (!preg_match('/^(\\w+)?-(.+)$/', $unitKey, $m)) {
                                     throw new Exception("Invalid node (2) '$width/$unitKey'");
                                 }
                                 $unitKind = $m[1];
                                 $unitName = $m[2];
+                                if ($unitKind === '10p' && is_numeric($unitName)) {
+                                    // @todo
+                                    continue 2;
+                                }
                                 if (!array_key_exists($unitKind, $data[$width])) {
                                     $data[$width][$unitKind] = [];
                                 }
@@ -2521,6 +2522,9 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
                 break;
             case '[:^S:]':
                 $regexp = '[^\pS]';
+                break;
+            case '[[:^S:]&[:^Z:]]':
+                $regexp = '[[^\pS]&[\S]]';
                 break;
             default:
                 throw new Exception("Unsupported match: $match");
@@ -2718,13 +2722,15 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
 
     /**
      * @param SourceData $sourceData
-     * @param mixed $localeID
+     * @param string $localeID
      *
      * @return string
      */
     protected function getSourceFile(SourceData $sourceData, $localeID)
     {
-        return $sourceData->getJsonDirectoryForGeneric('rbnf') . '/' . $localeID . '.json';
+        $base = $sourceData->getJsonDirectoryForGeneric('rbnf') . '/';
+
+        return $base . (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
     }
 
     /**
@@ -2838,7 +2844,34 @@ abstract class SupplementalPunicConversion extends PunicConversion
      */
     protected function getSourceFile(SourceData $sourceData)
     {
-        return $sourceData->getJsonDirectoryForGeneric('supplemental') . '/' . $this->getIdentifier() . '.json';
+        $supplementalDir = $sourceData->getJsonDirectoryForGeneric('supplemental');
+        $identifier = $this->getIdentifier();
+        if (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0) {
+            switch ($identifier) {
+                case 'codeMappings':
+                case 'currencyData':
+                case 'measurementData':
+                case 'parentLocales':
+                case 'territoryContainment':
+                case 'territoryInfo':
+                case 'timeData':
+                case 'weekData':
+                    return "{$supplementalDir}/supplementalData/{$identifier}.json";
+                case 'dayPeriods':
+                    return "{$supplementalDir}/dayPeriods/{$identifier}.json";
+                case 'likelySubtags':
+                    return "{$supplementalDir}/likelySubtags/{$identifier}.json";
+                case 'primaryZones':
+                case 'metaZones':
+                    return "{$supplementalDir}/metaZones/{$identifier}.json";
+                case 'ordinals':
+                    return "{$supplementalDir}/ordinals/{$identifier}.json";
+                case 'plurals':
+                    return "{$supplementalDir}/plurals/{$identifier}.json";
+            }
+        }
+
+        return "{$supplementalDir}/{$identifier}.json";
     }
 
     /**
@@ -2887,16 +2920,6 @@ class NoopSupplementalPunicConversion extends SupplementalPunicConversion
     public function __construct(array $roots, $identifier = null)
     {
         parent::__construct('supplemental', $roots, $identifier);
-    }
-
-    /**
-     * @param array $data
-     *
-     * @return array
-     */
-    protected function process($data)
-    {
-        return parent::process($data);
     }
 }
 
@@ -3447,12 +3470,14 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                     $exampleValuesParsed[] = $ev;
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
-                                    $exampleValuesParsed[] = (int) ($m[1]);
+                                    $exampleValuesParsed[] = (int) $m[1];
                                     $exampleValuesParsed[] = $m[2];
-                                    $exampleValuesParsed[] = (int) ($m[2]);
+                                    $exampleValuesParsed[] = (int) $m[2];
                                 } elseif (preg_match('/^([+\-]?\d+(\.\d+)?)~([+\-]?\d+(\.\d+)?)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
                                     $exampleValuesParsed[] = $m[3];
+                                } elseif (preg_match('/^(\d+(?:\.\d+)?)e(\d+)$/', $ev, $m)) {
+                                    $exampleValuesParsed[] = $ev;
                                 } elseif ($ev !== '…') {
                                     throw new Exception("Invalid node '$key': $vOriginal");
                                 }
@@ -3473,7 +3498,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                     $v = preg_replace('/ ?% ?/', ' % ', $v);
                     $map = [' == ' => 'true', ' != ' => 'false'];
                     $startPattern = '^| and | or ';
-                    $leftPattern = '[nivfwft](?: % \d+)?';
+                    $leftPattern = '[nivwftce](?: % \d+)?';
                     $operatorPattern = ' == | != ';
                     $rightPattern = '\d+(?:(?:\.\.|,)\d+)+';
                     while (preg_match("/(?:$startPattern)(($leftPattern)($operatorPattern)($rightPattern))/", $v, $m)) {
@@ -3500,6 +3525,8 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                         'w' => '%4$s', // number of visible fraction digits in n, without trailing zeros.
                         'f' => '%5$s', // visible fractional digits in n, with trailing zeros.
                         't' => '%6$s', // visible fractional digits in n, without trailing zeros.
+                        'c' => '%7$s', // compact decimal exponent value: exponent of the power of 10 used in compact decimal formatting.
+                        'e' => '%7$s', // currently, synonym for ‘c’. however, may be redefined in the future.
                     ] as $from => $to) {
                         $v = preg_replace('/^' . $from . ' /', "$to ", $v);
                         $v = preg_replace("/^$from /", "$to ", $v);
