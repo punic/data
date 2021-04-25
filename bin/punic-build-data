@@ -3488,8 +3488,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                     $exampleValuesParsed[] = $ev;
                                 } elseif (preg_match('/^([+\-]?\d(\.\d+)?)c([+\-]?\d+)$/', $ev, $m)) {
                                     $f = $m[1] * pow(10, $m[3]);
-                                    $exampleValuesParsed[] = $f;
-                                    $exampleValuesParsed[] = (int) $f;
+                                    // @todo
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
                                     $exampleValuesParsed[] = (int) $m[1];
