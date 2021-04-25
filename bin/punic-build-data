@@ -2347,9 +2347,6 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                 if (!array_key_exists($unitName, $data[$width][$unitKind])) {
                                     $data[$width][$unitKind][$unitName] = [];
                                 }
-                                if (!isset($data[$width][$unitKey]['displayName'])) {
-                                    throw new Exception("Missing unit name in '$width/$unitKey'");
-                                }
                                 if (!isset($data[$width][$unitKey]['unitPattern-count-other'])) {
                                     throw new Exception("Missing 'other' rule in '$width/$unitKey'");
                                 }
