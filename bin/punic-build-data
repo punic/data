@@ -2524,7 +2524,7 @@ class NumbersLocalePunicConversion extends LocalePunicConversion
                 $regexp = '[^\pS]';
                 break;
             case '[[:^S:]&[:^Z:]]':
-                $regexp = '[[^\pS]&[\S]]';
+                $regexp = '[^\pS\pZ]';
                 break;
             default:
                 throw new Exception("Unsupported match: $match");
