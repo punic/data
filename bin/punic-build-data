@@ -148,9 +148,9 @@ function checkEnvironment()
     }
     $output = [];
     $rc = null;
-    @exec('ant -version 2>&1', $output, $rc);
+    @exec('mvn -version 2>&1', $output, $rc);
     if ($rc !== 0) {
-        throw new UserMessageException('Missing Apache ant command');
+        throw new UserMessageException('Missing Maven command');
     }
 }
 function argToShell($arg)
@@ -175,7 +175,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '36';
+    const DEFAULT_CLDR_VERSION = '39';
 
     /**
      * The default libphonenumber version.
@@ -1022,7 +1022,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getRepositoryDirectory() . '/tools/java/cldr.jar';
+        return $this->getRepositoryDirectory() . '/tools/cldr-code/target/cldr-code.jar';
     }
 
     /**
@@ -1056,7 +1056,7 @@ class SourceData
             try {
                 $output = [];
                 $rc = null;
-                @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                @exec('mvn --settings mvn-settings.xml package -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/pom.xml 2>&1', $output, $rc);
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
@@ -1147,7 +1147,7 @@ class SourceData
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
                 $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($genDir); // where to save the generated files
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell(dirname($dir)); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
@@ -2358,14 +2358,24 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                         case 'displayName':
                                             $data[$width][$unitKind][$unitName]['_name'] = $data[$width][$unitKey][$pluralRuleSrc];
                                             break;
+                                        case 'gender':
+                                            $data[$width][$unitKind][$unitName]['_gender'] = $data[$width][$unitKey][$pluralRuleSrc];
+                                            break;
                                         case 'perUnitPattern':
                                             $data[$width][$unitKind][$unitName]['_per'] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
                                             break;
                                         default:
-                                            if (!preg_match('/^unitPattern-count-(.+)$/', $pluralRuleSrc, $m)) {
-                                                throw new Exception("Invalid node (4) '$width/$unitKey/$pluralRuleSrc'");
+                                            if (preg_match('/-count-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule = $m[1];
+                                            } else {
+                                                $pluralRule = 'other';
                                             }
-                                            $pluralRule = $m[1];
+                                            if (preg_match('/-gender-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule .= '-' . $m[1];
+                                            }
+                                            if (preg_match('/-case-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule .= '-' . $m[1];
+                                            }
                                             $data[$width][$unitKind][$unitName][$pluralRule] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
                                             break;
                                     }
@@ -2798,7 +2808,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
             }
             foreach ($rulesetGrouping as $type => $ruleset) {
                 $type = substr($type, 1);
-                foreach ($ruleset as $descriptor => $rule) {
+                foreach ($ruleset as [$descriptor, $rule]) {
                     if ($rule[0] === "'") {
                         $rule = substr($rule, 1);
                     }
@@ -3258,6 +3268,17 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
 
         return $data;
     }
+
+    /**
+     * @return array
+     */
+    protected function getUnsetByPath()
+    {
+        // @todo
+        return [
+            '/supplemental' => ['version', 'dayPeriodRuleSet-type-selection'],
+        ];
+    }
 }
 
 class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
@@ -3468,6 +3489,10 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                     $exampleValuesParsed[] = (int) $ev;
                                 } elseif (preg_match('/^[+\-]?\d+\.\d+$/', $ev)) {
                                     $exampleValuesParsed[] = $ev;
+                                } elseif (preg_match('/^([+\-]?\d(\.\d+)?)c([+\-]?\d+)$/', $ev, $m)) {
+                                    $f = $m[1] * pow(10, $m[3]);
+                                    $exampleValuesParsed[] = $f;
+                                    $exampleValuesParsed[] = (int) $f;
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
                                     $exampleValuesParsed[] = (int) $m[1];

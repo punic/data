@@ -1,0 +1,13 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+ <!-- Add your GitHub username and an access token below, and rename file to mvn-settings.xml -->
+ <servers>
+  <server>
+   <id>githubicu</id>
+   <username>Your GitHub username</username>
+   <password>Your GitHub token</password>
+  </server>
+ </servers>
+</settings>
