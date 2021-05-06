@@ -453,6 +453,14 @@ class BuildOptions
     }
 
     /**
+     * @return string
+     */
+    public function getMavenRepositoryPath()
+    {
+        return $this->getTemporaryDirectory() . '/mvn';
+    }
+
+    /**
      * Initializes the instance.
      */
     protected function __construct()
@@ -1085,7 +1093,7 @@ class SourceData
                 $output = [];
                 $rc = null;
                 if ($this->getOptions()->getCLDRMajorVersion() >= 38) {
-                    @exec('mvn --settings ' . argToShell($this->getOptions()->getMavenSettingsPath()) . ' package -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/cldr-code/pom.xml 2>&1', $output, $rc);
+                    @exec('mvn --settings ' . argToShell($this->getOptions()->getMavenSettingsPath()) . ' package -Dmaven.repo.local=' . argToShell($this->getOptions()->getMavenRepositoryPath()) . ' -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/cldr-code/pom.xml 2>&1', $output, $rc);
                 } else {
                     @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
                 }
