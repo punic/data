@@ -18,7 +18,7 @@ try {
         $optionArray = [];
     }
     $options = BuildOptions::fromArray($optionArray);
-    checkEnvironment();
+    checkEnvironment($options);
     echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
     if ($options->shouldUseLibphonenumber()) {
@@ -129,7 +129,7 @@ class UserMessageException extends Exception
 {
 }
 
-function checkEnvironment()
+function checkEnvironment(BuildOptions $options)
 {
     if (!class_exists('Collator')) {
         throw new UserMessageException('Missing PHP extension: intl');
@@ -148,9 +148,19 @@ function checkEnvironment()
     }
     $output = [];
     $rc = null;
-    @exec('mvn -version 2>&1', $output, $rc);
-    if ($rc !== 0) {
-        throw new UserMessageException('Missing Maven command');
+    if ($options->getCLDRMajorVersion() >= 38) {
+        @exec('mvn -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Maven command');
+        }
+        if (!is_file($options->getMavenSettingsPath())) {
+            throw new UserMessageException('Unable to find the Maven settings file. You can create is by using the create-mvn-settings command.');
+        }
+    } else {
+        @exec('ant -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Apache ant command');
+        }
     }
 }
 function argToShell($arg)
@@ -432,6 +442,14 @@ class BuildOptions
     protected static function getDefaultTemporaryDirectory()
     {
         return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/temp';
+    }
+
+    /**
+     * @return string
+     */
+    public function getMavenSettingsPath()
+    {
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/mvn-settings.xml';
     }
 
     /**
@@ -1032,7 +1050,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getRepositoryDirectory() . '/tools/cldr-code/target/cldr-code.jar';
+        return $this->getRepositoryDirectory() . ($this->getOptions()->getCLDRMajorVersion() >= 38 ? '/tools/cldr-code/target/cldr-code.jar' : '/tools/java/cldr.jar');
     }
 
     /**
@@ -1066,7 +1084,11 @@ class SourceData
             try {
                 $output = [];
                 $rc = null;
-                @exec('mvn --settings mvn-settings.xml package -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/pom.xml 2>&1', $output, $rc);
+                if ($this->getOptions()->getCLDRMajorVersion() >= 38) {
+                    @exec('mvn --settings ' . argToShell($this->getOptions()->getMavenSettingsPath()) . ' package -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/cldr-code/pom.xml 2>&1', $output, $rc);
+                } else {
+                    @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                }
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
@@ -1157,7 +1179,7 @@ class SourceData
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
                 $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell(dirname($dir)); // where to save the generated files
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($genDir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
