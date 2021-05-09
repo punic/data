@@ -18,7 +18,7 @@ try {
         $optionArray = [];
     }
     $options = BuildOptions::fromArray($optionArray);
-    checkEnvironment();
+    checkEnvironment($options);
     echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
     if ($options->shouldUseLibphonenumber()) {
@@ -129,7 +129,7 @@ class UserMessageException extends Exception
 {
 }
 
-function checkEnvironment()
+function checkEnvironment(BuildOptions $options)
 {
     if (!class_exists('Collator')) {
         throw new UserMessageException('Missing PHP extension: intl');
@@ -148,9 +148,19 @@ function checkEnvironment()
     }
     $output = [];
     $rc = null;
-    @exec('ant -version 2>&1', $output, $rc);
-    if ($rc !== 0) {
-        throw new UserMessageException('Missing Apache ant command');
+    if ($options->getCLDRMajorVersion() >= 38) {
+        @exec('mvn -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Maven command');
+        }
+        if (!is_file($options->getMavenSettingsPath())) {
+            throw new UserMessageException('Unable to find the Maven settings file. You can create is by using the create-mvn-settings command.');
+        }
+    } else {
+        @exec('ant -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Apache ant command');
+        }
     }
 }
 function argToShell($arg)
@@ -175,7 +185,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_CLDR_VERSION = '36';
+    const DEFAULT_CLDR_VERSION = '39';
 
     /**
      * The default libphonenumber version.
@@ -216,6 +226,16 @@ class BuildOptions
     }
 
     /**
+     * Get the major CLDR version.
+     *
+     * @return int
+     */
+    public function getCLDRMajorVersion()
+    {
+        return preg_match('/^(\d+)/', $this->getCLDRVersion(), $m) ? (int) $m[1] : 0;
+    }
+
+    /**
      * The libphonenumber version.
      *
      * @var string
@@ -239,7 +259,7 @@ class BuildOptions
      */
     public function shouldUseLibphonenumber()
     {
-        return version_compare($this->getCLDRVersion(), '34') >= 0;
+        return $this->getCLDRMajorVersion() >= 34;
     }
 
     /**
@@ -422,6 +442,22 @@ class BuildOptions
     protected static function getDefaultTemporaryDirectory()
     {
         return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/temp';
+    }
+
+    /**
+     * @return string
+     */
+    public function getMavenSettingsPath()
+    {
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/mvn-settings.xml';
+    }
+
+    /**
+     * @return string
+     */
+    public function getMavenRepositoryPath()
+    {
+        return $this->getTemporaryDirectory() . '/mvn';
     }
 
     /**
@@ -1022,7 +1058,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getRepositoryDirectory() . '/tools/java/cldr.jar';
+        return $this->getRepositoryDirectory() . ($this->getOptions()->getCLDRMajorVersion() >= 38 ? '/tools/cldr-code/target/cldr-code.jar' : '/tools/java/cldr.jar');
     }
 
     /**
@@ -1056,7 +1092,11 @@ class SourceData
             try {
                 $output = [];
                 $rc = null;
-                @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                if ($this->getOptions()->getCLDRMajorVersion() >= 38) {
+                    @exec('mvn --settings ' . argToShell($this->getOptions()->getMavenSettingsPath()) . ' package -Dmaven.repo.local=' . argToShell($this->getOptions()->getMavenRepositoryPath()) . ' -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/cldr-code/pom.xml 2>&1', $output, $rc);
+                } else {
+                    @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                }
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
@@ -1142,7 +1182,7 @@ class SourceData
             $dir = $this->getJsonDirectoryForLocale($localeID);
             $this->fileUtils->createDirectory($dir);
             $this->fileUtils->deleteFromFilesystem($dir);
-            $genDir = version_compare($this->getOptions()->getCLDRVersion(), '38') >= 0 ? dirname($dir) : $dir;
+            $genDir = $this->getOptions()->getCLDRMajorVersion() >= 38 ? dirname($dir) : $dir;
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
@@ -1546,7 +1586,7 @@ class CldrConverter
                 new CurrenciesLocalePunicConversion(),
                 new RbnfLocalePunicConversion(),
             ];
-            if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+            if ($this->options->getCLDRMajorVersion() >= 32) {
                 $converters[] = new SubdivisionsLocalePunicConversion($destinationDirectory . '/localeDisplayNames.php');
             }
 
@@ -1598,7 +1638,7 @@ class CldrConverter
             new MeasurementDataSupplementalPunicConversion(),
             new CurrencyDataSupplementalPunicConversion(),
         ];
-        if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+        if ($this->options->getCLDRMajorVersion() >= 32) {
             $converters[] = new SubdivisionsSupplementalPunicConversion();
             $converters[] = new TimeZoneSupplementalPunicConversion();
             $converters[] = new CodeMappingsSupplementalPunicConversion();
@@ -2347,9 +2387,6 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                 if (!array_key_exists($unitName, $data[$width][$unitKind])) {
                                     $data[$width][$unitKind][$unitName] = [];
                                 }
-                                if (!isset($data[$width][$unitKey]['displayName'])) {
-                                    throw new Exception("Missing unit name in '$width/$unitKey'");
-                                }
                                 if (!isset($data[$width][$unitKey]['unitPattern-count-other'])) {
                                     throw new Exception("Missing 'other' rule in '$width/$unitKey'");
                                 }
@@ -2358,14 +2395,24 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                         case 'displayName':
                                             $data[$width][$unitKind][$unitName]['_name'] = $data[$width][$unitKey][$pluralRuleSrc];
                                             break;
+                                        case 'gender':
+                                            $data[$width][$unitKind][$unitName]['_gender'] = $data[$width][$unitKey][$pluralRuleSrc];
+                                            break;
                                         case 'perUnitPattern':
                                             $data[$width][$unitKind][$unitName]['_per'] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
                                             break;
                                         default:
-                                            if (!preg_match('/^unitPattern-count-(.+)$/', $pluralRuleSrc, $m)) {
-                                                throw new Exception("Invalid node (4) '$width/$unitKey/$pluralRuleSrc'");
+                                            if (preg_match('/-count-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule = $m[1];
+                                            } else {
+                                                $pluralRule = 'other';
                                             }
-                                            $pluralRule = $m[1];
+                                            if (preg_match('/-gender-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule .= '-' . $m[1];
+                                            }
+                                            if (preg_match('/-case-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $pluralRule .= '-' . $m[1];
+                                            }
                                             $data[$width][$unitKind][$unitName][$pluralRule] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
                                             break;
                                     }
@@ -2730,7 +2777,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
     {
         $base = $sourceData->getJsonDirectoryForGeneric('rbnf') . '/';
 
-        return $base . (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
+        return $base . ($sourceData->getOptions()->getCLDRMajorVersion() >= 38 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
     }
 
     /**
@@ -2798,7 +2845,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
             }
             foreach ($rulesetGrouping as $type => $ruleset) {
                 $type = substr($type, 1);
-                foreach ($ruleset as $descriptor => $rule) {
+                foreach ($ruleset as [$descriptor, $rule]) {
                     if ($rule[0] === "'") {
                         $rule = substr($rule, 1);
                     }
@@ -2846,7 +2893,7 @@ abstract class SupplementalPunicConversion extends PunicConversion
     {
         $supplementalDir = $sourceData->getJsonDirectoryForGeneric('supplemental');
         $identifier = $this->getIdentifier();
-        if (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0) {
+        if ($sourceData->getOptions()->getCLDRMajorVersion() >= 38) {
             switch ($identifier) {
                 case 'codeMappings':
                 case 'currencyData':
@@ -3258,6 +3305,17 @@ class DayPeriodsSupplementalPunicConversion extends SupplementalPunicConversion
 
         return $data;
     }
+
+    /**
+     * @return array
+     */
+    protected function getUnsetByPath()
+    {
+        // @todo
+        return [
+            '/supplemental' => ['version', 'dayPeriodRuleSet-type-selection'],
+        ];
+    }
 }
 
 class WeekDataSupplementalPunicConversion extends SupplementalPunicConversion
@@ -3468,6 +3526,9 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                     $exampleValuesParsed[] = (int) $ev;
                                 } elseif (preg_match('/^[+\-]?\d+\.\d+$/', $ev)) {
                                     $exampleValuesParsed[] = $ev;
+                                } elseif (preg_match('/^([+\-]?\d(\.\d+)?)c([+\-]?\d+)$/', $ev, $m)) {
+                                    $f = $m[1] * pow(10, $m[3]);
+                                    // @todo
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
                                     $exampleValuesParsed[] = (int) $m[1];

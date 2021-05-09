@@ -1,0 +1,64 @@
+#!/usr/bin/env php
+<?php
+
+function askUserInput()
+{
+    if (function_exists('readline')) {
+        $line = readline();
+    } else {
+        $line = stream_get_line(STDIN, 1024, PHP_EOL);
+    }
+
+    return is_string($line) ? trim($line) : '';
+}
+
+echo <<<'EOT'
+In order to parse the source Unicode CLDR data we need to read some public GitHub repositories.
+As described at http://cldr.unicode.org/development/maven you need GitHub authentication.
+
+If you don't have a GitHub account, you can create it for free - see
+http://cldr.unicode.org/development/maven#TOC-Getting-Started---GitHub-token
+
+If you don't have a GitHub personal access token, you can create it at:
+https://github.com/settings/tokens
+
+
+EOT;
+
+echo 'Your GitHub user name [empty value to abort]: ';
+$username = askUserInput();
+if ($username === '') {
+    exit(0);
+}
+echo 'Your GitHub personal access token [empty value to abort]: ';
+$token = askUserInput();
+if ($token === '') {
+    exit(0);
+}
+
+$xmlUsername = htmlspecialchars($username, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+$xmlToken = htmlspecialchars($token, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+$xml = <<<EOT
+<settings
+    xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd"
+>
+    <servers>
+        <!-- needed for building CLDR -->
+        <server>
+            <id>githubicu</id>
+            <username>{$xmlUsername}</username>
+            <password>{$xmlToken}</password>
+        </server>
+    </servers>
+</settings>
+EOT;
+
+if (!file_put_contents(dirname(__DIR__) . '/mvn-settings.xml', $xml)) {
+    fwrite(STDERR, 'Failed to create the Maven settings file');
+    exit(1);
+}
+
+echo "Maven settings file has been created.\n";
+exit(0);

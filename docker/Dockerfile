@@ -1,11 +1,11 @@
-FROM alpine:3.7
+FROM alpine:3.13
 
 RUN apk upgrade -U && \
     apk add --update --no-cache \
         git \
-        git-lfs \
         openjdk8 \
         apache-ant \
+        maven \
         php7 \
         php7-json \
         php7-intl \
