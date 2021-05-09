@@ -18,7 +18,7 @@ try {
         $optionArray = [];
     }
     $options = BuildOptions::fromArray($optionArray);
-    checkEnvironment();
+    checkEnvironment($options);
     echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
     if ($options->shouldUseLibphonenumber()) {
@@ -129,7 +129,7 @@ class UserMessageException extends Exception
 {
 }
 
-function checkEnvironment()
+function checkEnvironment(BuildOptions $options)
 {
     if (!class_exists('Collator')) {
         throw new UserMessageException('Missing PHP extension: intl');
@@ -148,9 +148,19 @@ function checkEnvironment()
     }
     $output = [];
     $rc = null;
-    @exec('mvn -version 2>&1', $output, $rc);
-    if ($rc !== 0) {
-        throw new UserMessageException('Missing Maven command');
+    if ($options->getCLDRMajorVersion() >= 38) {
+        @exec('mvn -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Maven command');
+        }
+        if (!is_file($options->getMavenSettingsPath())) {
+            throw new UserMessageException('Unable to find the Maven settings file. You can create is by using the create-mvn-settings command.');
+        }
+    } else {
+        @exec('ant -version 2>&1', $output, $rc);
+        if ($rc !== 0) {
+            throw new UserMessageException('Missing Apache ant command');
+        }
     }
 }
 function argToShell($arg)
@@ -216,6 +226,16 @@ class BuildOptions
     }
 
     /**
+     * Get the major CLDR version.
+     *
+     * @return int
+     */
+    public function getCLDRMajorVersion()
+    {
+        return preg_match('/^(\d+)/', $this->getCLDRVersion(), $m) ? (int) $m[1] : 0;
+    }
+
+    /**
      * The libphonenumber version.
      *
      * @var string
@@ -239,7 +259,7 @@ class BuildOptions
      */
     public function shouldUseLibphonenumber()
     {
-        return version_compare($this->getCLDRVersion(), '34') >= 0;
+        return $this->getCLDRMajorVersion() >= 34;
     }
 
     /**
@@ -422,6 +442,22 @@ class BuildOptions
     protected static function getDefaultTemporaryDirectory()
     {
         return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/temp';
+    }
+
+    /**
+     * @return string
+     */
+    public function getMavenSettingsPath()
+    {
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/mvn-settings.xml';
+    }
+
+    /**
+     * @return string
+     */
+    public function getMavenRepositoryPath()
+    {
+        return $this->getTemporaryDirectory() . '/mvn';
     }
 
     /**
@@ -1022,7 +1058,7 @@ class SourceData
      */
     protected function getJarFile()
     {
-        return $this->getRepositoryDirectory() . '/tools/cldr-code/target/cldr-code.jar';
+        return $this->getRepositoryDirectory() . ($this->getOptions()->getCLDRMajorVersion() >= 38 ? '/tools/cldr-code/target/cldr-code.jar' : '/tools/java/cldr.jar');
     }
 
     /**
@@ -1056,7 +1092,11 @@ class SourceData
             try {
                 $output = [];
                 $rc = null;
-                @exec('mvn --settings mvn-settings.xml package -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/pom.xml 2>&1', $output, $rc);
+                if ($this->getOptions()->getCLDRMajorVersion() >= 38) {
+                    @exec('mvn --settings ' . argToShell($this->getOptions()->getMavenSettingsPath()) . ' package -Dmaven.repo.local=' . argToShell($this->getOptions()->getMavenRepositoryPath()) . ' -DskipTests=true --file ' . $this->getRepositoryDirectory() . '/tools/cldr-code/pom.xml 2>&1', $output, $rc);
+                } else {
+                    @exec('ant -f ' . argToShell($this->getRepositoryDirectory() . '/tools/java/build.xml') . ' jar 2>&1', $output, $rc);
+                }
                 if ($rc === 0) {
                     if (!is_file($file)) {
                         $rc = -1;
@@ -1142,12 +1182,12 @@ class SourceData
             $dir = $this->getJsonDirectoryForLocale($localeID);
             $this->fileUtils->createDirectory($dir);
             $this->fileUtils->deleteFromFilesystem($dir);
-            $genDir = version_compare($this->getOptions()->getCLDRVersion(), '38') >= 0 ? dirname($dir) : $dir;
+            $genDir = $this->getOptions()->getCLDRMajorVersion() >= 38 ? dirname($dir) : $dir;
             try {
                 $cmd = 'java';
                 $cmd .= ' -Duser.language=en -Duser.country=US'; // http://unicode.org/cldr/trac/ticket/10044
                 $cmd .= ' -DCLDR_DIR=' . argToShell($this->getRepositoryDirectory()); //  where the CLDR data is located
-                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell(dirname($dir)); // where to save the generated files
+                $cmd .= ' -DCLDR_GEN_DIR=' . argToShell($genDir); // where to save the generated files
                 $cmd .= ' -jar ' . argToShell($this->getJarFile()); // the CLDR jar file
                 $cmd .= ' ldml2json';
                 $cmd .= ' -t main'; // (main|supplemental|segments|rbnf) Type of CLDR data being generated, main, supplemental, or segments.
@@ -1546,7 +1586,7 @@ class CldrConverter
                 new CurrenciesLocalePunicConversion(),
                 new RbnfLocalePunicConversion(),
             ];
-            if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+            if ($this->options->getCLDRMajorVersion() >= 32) {
                 $converters[] = new SubdivisionsLocalePunicConversion($destinationDirectory . '/localeDisplayNames.php');
             }
 
@@ -1598,7 +1638,7 @@ class CldrConverter
             new MeasurementDataSupplementalPunicConversion(),
             new CurrencyDataSupplementalPunicConversion(),
         ];
-        if (version_compare($this->options->getCLDRVersion(), '32') >= 0) {
+        if ($this->options->getCLDRMajorVersion() >= 32) {
             $converters[] = new SubdivisionsSupplementalPunicConversion();
             $converters[] = new TimeZoneSupplementalPunicConversion();
             $converters[] = new CodeMappingsSupplementalPunicConversion();
@@ -2737,7 +2777,7 @@ class RbnfLocalePunicConversion extends LocalePunicConversion
     {
         $base = $sourceData->getJsonDirectoryForGeneric('rbnf') . '/';
 
-        return $base . (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
+        return $base . ($sourceData->getOptions()->getCLDRMajorVersion() >= 38 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
     }
 
     /**
@@ -2853,7 +2893,7 @@ abstract class SupplementalPunicConversion extends PunicConversion
     {
         $supplementalDir = $sourceData->getJsonDirectoryForGeneric('supplemental');
         $identifier = $this->getIdentifier();
-        if (version_compare($sourceData->getOptions()->getCLDRVersion(), '38') >= 0) {
+        if ($sourceData->getOptions()->getCLDRMajorVersion() >= 38) {
             switch ($identifier) {
                 case 'codeMappings':
                 case 'currencyData':

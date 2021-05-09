@@ -4,6 +4,7 @@ RUN apk upgrade -U && \
     apk add --update --no-cache \
         git \
         openjdk8 \
+        apache-ant \
         maven \
         php7 \
         php7-json \
