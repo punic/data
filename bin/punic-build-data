@@ -192,7 +192,7 @@ class BuildOptions
      *
      * @var string
      */
-    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.10.22';
+    const DEFAULT_LIBPHONENUMBER_VERSION = 'v8.12.22';
 
     /**
      * The default CLDR draft status.
