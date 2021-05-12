@@ -248,6 +248,7 @@ class DockerImage
      */
     public static function fromFormat($format)
     {
+        $matches = null;
         if (!preg_match('/^(\S+) (\S+) (\S+)$/', $format, $matches)) {
             return null;
         }

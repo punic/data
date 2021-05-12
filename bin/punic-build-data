@@ -232,6 +232,8 @@ class BuildOptions
      */
     public function getCLDRMajorVersion()
     {
+        $m = null;
+
         return preg_match('/^(\d+)/', $this->getCLDRVersion(), $m) ? (int) $m[1] : 0;
     }
 
@@ -3527,7 +3529,7 @@ class PluralsSupplementalPunicConversion extends SupplementalPunicConversion
                                 } elseif (preg_match('/^[+\-]?\d+\.\d+$/', $ev)) {
                                     $exampleValuesParsed[] = $ev;
                                 } elseif (preg_match('/^([+\-]?\d(\.\d+)?)c([+\-]?\d+)$/', $ev, $m)) {
-                                    $f = $m[1] * pow(10, $m[3]);
+                                    // $f = $m[1] * pow(10, $m[3]);
                                     // @todo
                                 } elseif (preg_match('/^([+\-]?\d+)~([+\-]?\d+)$/', $ev, $m)) {
                                     $exampleValuesParsed[] = $m[1];
