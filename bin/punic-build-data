@@ -2328,13 +2328,13 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
     protected function process(array $data, $localeID)
     {
         $data = parent::process($data, $localeID);
+        $originalData = $data;
         $m = null;
         foreach (array_keys($data) as $width) {
             switch ($width) {
                 case 'long':
                 case 'short':
                 case 'narrow':
-                case 'long':
                     foreach (array_keys($data[$width]) as $unitKey) {
                         switch ($unitKey) {
                             case 'per':
@@ -2390,7 +2390,27 @@ class UnitsLocalePunicConversion extends LocalePunicConversion
                                     $data[$width][$unitKind][$unitName] = [];
                                 }
                                 if (!isset($data[$width][$unitKey]['unitPattern-count-other'])) {
-                                    throw new Exception("Missing 'other' rule in '$width/$unitKey'");
+                                    $lookInOtherWidths = array();
+                                    switch ($width) {
+                                        case 'long':
+                                            $lookInOtherWidths = ['short', 'narrow'];
+                                            break;
+                                        case 'short':
+                                            $lookInOtherWidths = ['narrow', 'long'];
+                                            break;
+                                        case 'narrow':
+                                            $lookInOtherWidths = ['short', 'long'];
+                                            break;
+                                    }
+                                    foreach ($lookInOtherWidths as $lookInOtherWidth) {
+                                        if (isset($originalData[$lookInOtherWidth][$unitKey]['unitPattern-count-other'])) {
+                                            $data[$width][$unitKey] += $originalData[$lookInOtherWidth][$unitKey];
+                                            break;
+                                        }
+                                    }
+                                    if (!isset($data[$width][$unitKey]['unitPattern-count-other'])) {
+                                        throw new Exception("Missing 'other' rule in '$width/$unitKey'");
+                                    }
                                 }
                                 foreach (array_keys($data[$width][$unitKey]) as $pluralRuleSrc) {
                                     switch ($pluralRuleSrc) {
