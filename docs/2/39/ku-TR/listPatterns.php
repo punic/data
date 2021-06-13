@@ -1,0 +1,1 @@
+../../../1/34/ku/listPatterns.php
