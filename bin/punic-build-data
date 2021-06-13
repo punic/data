@@ -19,7 +19,7 @@ try {
     }
     $options = BuildOptions::fromArray($optionArray);
     checkEnvironment($options);
-    echo 'Punic data format version: ', BuildOptions::FORMAT_VERSION, "\n";
+    echo 'Punic data format version: ', $options->getFormatVersion(), "\n";
     echo 'Processing CLDR version  : ', $options->getCLDRVersion(), "\n";
     if ($options->shouldUseLibphonenumber()) {
         echo 'Libphonenumber version   : ', $options->getLibphonenumberVersion(), "\n";
@@ -110,7 +110,7 @@ try {
 
     if ($options->getUpdateStateFile()) {
         echo 'Writing state file... ';
-        StateFile::write($options->getStateFile(), $options->getCLDRVersion(), $locales, $localeFiles, $supplementalFiles, $testFiles);
+        StateFile::write($options, $locales, $localeFiles, $supplementalFiles, $testFiles);
         echo "done.\n";
     }
     exit(0);
@@ -174,13 +174,6 @@ function argToShell($arg)
 class BuildOptions
 {
     /**
-     * The data format version: to be increased when the data structure changes (not needed if data is only added).
-     *
-     * @var string
-     */
-    const FORMAT_VERSION = '1';
-
-    /**
      * The default CLDR version.
      *
      * @var string
@@ -237,6 +230,19 @@ class BuildOptions
         return preg_match('/^(\d+)/', $this->getCLDRVersion(), $m) ? (int) $m[1] : 0;
     }
 
+    /**
+     * Get the data format version: to be increased when the data structure changes (not needed if data is only added).
+     *
+     * @return string
+     */
+    public function getFormatVersion()
+    {
+        if ($this->getCLDRMajorVersion() >= 38) {
+            return '2';
+        }
+        return '1';
+    }
+    
     /**
      * The libphonenumber version.
      *
@@ -360,21 +366,18 @@ class BuildOptions
      */
     public function getOutputDirectory()
     {
-        return $this->outputDirectory === null ? static::getDefaultOutputDirectory($this->getCLDRVersion()) : $this->outputDirectory;
+        return $this->outputDirectory === null ? static::getDefaultOutputDirectory($this->getFormatVersion(), $this->getCLDRVersion()) : $this->outputDirectory;
     }
 
     /**
-     * @param string|null $cldrVersion
+     * @param string $dataFormatVersion
+     * @param string $cldrVersion
      *
      * @return string
      */
-    protected static function getDefaultOutputDirectory($cldrVersion = null)
+    protected static function getDefaultOutputDirectory($formatVersion, $cldrVersion)
     {
-        if ($cldrVersion === null) {
-            $cldrVersion = static::DEFAULT_CLDR_VERSION;
-        }
-
-        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/docs/' . static::FORMAT_VERSION . '/' . $cldrVersion;
+        return rtrim(str_replace(DIRECTORY_SEPARATOR, '/', dirname(__DIR__)), '/') . '/docs/' . $formatVersion . '/' . $cldrVersion;
     }
 
     /**
@@ -748,7 +751,7 @@ class BuildOptions
         $defaultCLDRVersion = static::DEFAULT_CLDR_VERSION;
         $defaultLibphonenumberVersion = static::DEFAULT_LIBPHONENUMBER_VERSION;
         $allLocalesPlaceholders = static::ALL_LOCALES_PLACEHOLDER;
-        $defaultOutputDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultOutputDirectory('<CLDR-VERSION>'));
+        $defaultOutputDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultOutputDirectory('<FORMAT-VERSION>', '<CLDR-VERSION>'));
         $defaultStateFile = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultStateFile());
         $defaultTemporaryDirectory = str_replace('/', DIRECTORY_SEPARATOR, static::getDefaultTemporaryDirectory());
         $cldrDraftStatuses = implode('|', CldrDraftStatus::getAllStatuses());
@@ -4064,8 +4067,11 @@ class StateFile
         $this->close();
     }
 
-    public static function write($path, $cldrVersion, array $locales, array $localeFiles, array $supplementalFiles, array $testFiles = [])
+    public static function write(BuildOptions $options, array $locales, array $localeFiles, array $supplementalFiles, array $testFiles = [])
     {
+        $path = $options->getStateFile();
+        $formatVersion = $options->getFormatVersion();
+        $cldrVersion = $options->getCLDRVersion();
         $me = new static($path);
         $json = '';
         while (!feof($me->handle)) {
@@ -4093,22 +4099,22 @@ class StateFile
                 throw new Exception("Invalid state file $path");
             }
         }
-        if (!isset($state['formats'][BuildOptions::FORMAT_VERSION])) {
-            $state['formats'][BuildOptions::FORMAT_VERSION] = [];
+        if (!isset($state['formats'][$formatVersion])) {
+            $state['formats'][$formatVersion] = [];
         }
-        if (!isset($state['formats'][BuildOptions::FORMAT_VERSION]['cldr'])) {
-            $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'] = [];
+        if (!isset($state['formats'][$formatVersion]['cldr'])) {
+            $state['formats'][$formatVersion]['cldr'] = [];
         }
         sort($localeFiles);
         sort($supplementalFiles);
-        $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'][$cldrVersion] = [
+        $state['formats'][$formatVersion]['cldr'][$cldrVersion] = [
             'locales' => $locales,
             'localeFiles' => array_map('basename', $localeFiles),
             'supplementalFiles' => array_map('basename', $supplementalFiles),
         ];
         if (count($testFiles) > 0) {
             sort($testFiles);
-            $state['formats'][BuildOptions::FORMAT_VERSION]['cldr'][$cldrVersion]['testFiles'] = array_map('basename', $testFiles);
+            $state['formats'][$formatVersion]['cldr'][$cldrVersion]['testFiles'] = array_map('basename', $testFiles);
         }
         $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
