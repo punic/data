@@ -1,0 +1,58 @@
+{
+    "name": "punic/data",
+    "description": "PHP-Unicode CLDR - Data",
+    "keywords": [
+        "localization",
+        "l10n",
+        "internationalization",
+        "i18n",
+        "translations",
+        "translate",
+        "php",
+        "unicode",
+        "cldr",
+        "calendar",
+        "date-time",
+        "date",
+        "time"
+    ],
+    "homepage": "https://github.com/punic/data",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michele Locati",
+            "email": "mlocati@gmail.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Remo Laubacher",
+            "email": "remo.laubacher@gmail.com",
+            "role": "Collaborator, motivator and perfectionist supporter"
+        },
+        {
+            "name": "Christian Schmidt",
+            "email": "github@chsc.dk",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Punic\\DataBuilder\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.2.5",
+        "illuminate/container": "^7.30",
+        "symfony/console": "^5.3"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "7.2.5"
+        },
+        "sort-packages": true
+    },
+    "bin": [
+        "bin/punic-data-builder"
+    ]
+}

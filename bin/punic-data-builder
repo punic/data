@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+if (PHP_VERSION_ID < 70200) {
+    fwrite(STDERR, "This script requires PHP 7.2+\n");
+    exit(1);
+}
+
+set_error_handler(
+    static function ($errno, $errstr, $errfile = '', $errline = null) {
+        $message = (string) $errstr;
+        if ($message === '') {
+            $message = "Unknown error (code: {$errno})";
+        }
+        if ((string) $errfile !== '') {
+            $message .= "\nFile: {$errfile}";
+            if ($errline) {
+                $message .= "\nLine: {$errline}";
+            }
+        }
+        throw new RuntimeException($message);
+    },
+    -1
+);
+
+if (!class_exists('Punic\\DataBuilder\\Container')) {
+    $autoloader = dirname(__DIR__) . '/vendor/autoload.php';
+    if (!is_file($autoloader)) {
+        fwrite(STDERR, "Composer dependencies not initialized.\nPlease run composer update.\n");
+        exit(1);
+    }
+    require_once $autoloader;
+    unset($autoloader);
+}
+
+return Punic\DataBuilder\Container::getInstance()->make('Punic\DataBuilder\Console\Application')->run();
