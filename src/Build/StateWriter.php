@@ -55,6 +55,8 @@ class StateWriter
         } elseif (!is_array($state['formats'])) {
             throw new RuntimeException('Invalid state file: ' . str_replace('/', DIRECTORY_SEPARATOR, $state));
         }
+
+        return $state;
     }
 
     protected function updateState(array $state, SourceData $sourceData, array $localeIDs, array $files): array
