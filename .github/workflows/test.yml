@@ -1,0 +1,25 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  php-coding-style:
+    name: Check PHP coding style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "7.4"
+          tools: php-cs-fixer:v3.0.0
+          coverage: none
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check PHP coding style
+        run: >
+          php-cs-fixer fix
+          --path-mode=intersection --config=./.php-cs-fixer.dist.php --dry-run --using-cache=no --diff --show-progress=dots --ansi --no-interaction --verbose
+          -- .
