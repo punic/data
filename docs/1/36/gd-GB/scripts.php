@@ -1,0 +1,1 @@
+../gd/scripts.php

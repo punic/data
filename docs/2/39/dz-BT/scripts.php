@@ -1,0 +1,1 @@
+../dz/scripts.php

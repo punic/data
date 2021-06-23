@@ -1,0 +1,1 @@
+../th/scripts.php

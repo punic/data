@@ -1,0 +1,1 @@
+../ksh/scripts.php

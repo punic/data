@@ -1,0 +1,1 @@
+../yo/scripts.php

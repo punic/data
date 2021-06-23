@@ -1,0 +1,1 @@
+../mni/scripts.php
