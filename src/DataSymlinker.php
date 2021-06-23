@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder;
 
 use RuntimeException;
+use Symfony\Component\Console\Cursor;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -37,6 +38,11 @@ class DataSymlinker
     protected $output;
 
     /**
+     * @var \Symfony\Component\Console\Cursor|null
+     */
+    protected $cursor;
+
+    /**
      * @var array
      */
     protected $filesMD5 = [];
@@ -58,6 +64,7 @@ class DataSymlinker
     {
         $this->filesystem = $filesystem;
         $this->output = $output ?? new NullOutput();
+        $this->cursor = $output->isDecorated() ? new Cursor($output) : null;
     }
 
     /**
@@ -219,7 +226,12 @@ class DataSymlinker
             }
         }
         if (!$this->output->isQuiet()) {
-            $this->output->writeln('done.');
+            if ($this->cursor === null) {
+                $this->output->writeln('done.');
+            } else {
+                $this->cursor->moveToColumn(1);
+                $this->cursor->clearLine();
+            }
         }
         foreach ($subdirectories as $subdirectory) {
             $this->addDirectory($subdirectory, $operation);
