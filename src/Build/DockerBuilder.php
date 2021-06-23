@@ -33,10 +33,16 @@ class DockerBuilder
      */
     protected $environment;
 
-    public function __construct(Docker $docker, Environment $environment)
+    /**
+     * @var \Punic\DataBuilder\Docker\PathMapper\Factory
+     */
+    protected $pathMapperFactory;
+
+    public function __construct(Docker $docker, Environment $environment, Docker\PathMapper\Factory $pathMapperFactory)
     {
         $this->docker = $docker;
         $this->environment = $environment;
+        $this->pathMapperFactory = $pathMapperFactory;
     }
 
     /**
@@ -58,7 +64,7 @@ class DockerBuilder
      */
     protected function getDockerBuildArguments(Docker\Image $image, Options $options): array
     {
-        $dockerMapper = new Docker\PathMapper(static::WORKING_DIRECTORY_PATH);
+        $dockerMapper = $this->pathMapperFactory->createPathMapper(static::WORKING_DIRECTORY_PATH);
         $dockerMapper
             ->addLocalDirectory('app', $this->environment->getProjectRootDirectory())
             ->addLocalDirectory('output', $options->getOutputDirectory())

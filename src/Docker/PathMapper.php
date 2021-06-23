@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Docker;
 
 use InvalidArgumentException;
+use Punic\DataBuilder\Filesystem;
 use RuntimeException;
+use Throwable;
 
 class PathMapper
 {
@@ -14,14 +16,20 @@ class PathMapper
     protected const TYPE_FILE = 'f';
 
     /**
+     * @var \Punic\DataBuilder\Filesystem
+     */
+    protected $filesystem;
+
+    /**
      * @var string
      */
     private $parentDirectoryInDockerWithSlash;
 
     private $paths = [];
 
-    public function __construct(string $parentDirectoryInDocker)
+    public function __construct(Filesystem $filesystem, string $parentDirectoryInDocker)
     {
+        $this->filesystem = $filesystem;
         $parentDirectoryInDocker = trim(str_replace(DIRECTORY_SEPARATOR, '/', $parentDirectoryInDocker), '/');
         $this->parentDirectoryInDockerWithSlash = $parentDirectoryInDocker === '' ? '/' : "/{$parentDirectoryInDocker}/";
         $this->reset();
@@ -47,7 +55,7 @@ class PathMapper
         if (isset($this->paths[$key])) {
             throw new InvalidArgumentException("Duplicated key: {$key}");
         }
-        $this->paths[$key] = [static::TYPE_DIRECTORY, $normalizedPath];
+        $this->paths[$key] = [static::TYPE_DIRECTORY, $this->resolveLink($normalizedPath)];
         return $this;
     }
 
@@ -61,7 +69,7 @@ class PathMapper
         if (isset($this->paths[$key])) {
             throw new InvalidArgumentException("Duplicated key: {$key}");
         }
-        $this->paths[$key] = [static::TYPE_FILE, $normalizedPath];
+        $this->paths[$key] = [static::TYPE_FILE, $this->resolveLink($normalizedPath)];
         return $this;
     }
 
@@ -205,5 +213,17 @@ class PathMapper
             $result[$key] = $mappedPath;
         }
         return $result;
+    }
+
+    protected function resolveLink(string $path): string
+    {
+        try {
+            $target = $this->filesystem->getLinkTarget($path);
+            if (file_exists($target)) {
+                return $target;
+            }
+        } catch (Throwable $x) {
+        }
+        return $path;
     }
 }
