@@ -153,6 +153,7 @@ class ConverterManager
             new Converter\Locale\Noop(['localeDisplayNames', 'measurementSystemNames']),
             new Converter\Locale\Currencies(),
             new Converter\Locale\Rbnf(),
+            new Converter\Locale\Scripts(),
         ]);
         if ($this->sourceData->getOptions()->getCldrMajorVersion() >= 32) {
             $this->registerConverter(new Converter\Locale\Subdivisions());
