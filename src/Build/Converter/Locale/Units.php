@@ -42,12 +42,8 @@ class Units extends Locale
                                 unset($data[$width][$unitKey]);
                                 break;
                             case 'coordinateUnit':
-                                if ($data[$width][$unitKey]['displayName']) {
-                                    $displayName = $data[$width][$unitKey]['displayName'];
-                                    unset($data[$width][$unitKey]['displayName']);
-                                } else {
-                                    $displayName = null;
-                                }
+                                $displayName = $data[$width][$unitKey]['displayName'] ?? null;
+                                unset($data[$width][$unitKey]['displayName']);
                                 $this->checkExactKeys($data[$width][$unitKey], ['east', 'north', 'south', 'west']);
                                 $data[$width]['_coordinateUnit'] = [];
                                 foreach (array_keys($data[$width][$unitKey]) as $direction) {
