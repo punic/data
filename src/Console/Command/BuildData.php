@@ -38,7 +38,7 @@ class BuildData extends Command
             ->setName(static::NAME)
             ->setDescription('Build the Punic data from CLDR and libphonenumber')
             ->addOption('cldr', 'c', InputOption::VALUE_REQUIRED, 'CLDR version (Examples: 31.d02  30.0.3  30  29.beta.1  25.M1  23.1.d01)', $options->getDefaultCldrVersion())
-            ->addOption('libphonenumber', 'p', InputOption::VALUE_REQUIRED, 'libphonenumber version (used when parsing CLDR 34+)', $options->getDefaultLibphonenumberVersion())
+            ->addOption('libphonenumber', 'p', InputOption::VALUE_REQUIRED, 'libphonenumber version (used when parsing CLDR 34+)')
             ->addOption('locale', 'l', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Comma-separated list of locales to be processes', [$allLocalesPlaceholders])
             ->addOption('draft-status', 'd', InputOption::VALUE_REQUIRED, 'The minimum level of the draft status of the CLDR data to be accepted (valud values: ' . implode(', ', DraftStatus::getAllStatuses()) . ')', $options->getDefaultCldrDraftStatus())
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'The output directory', str_replace('/', DIRECTORY_SEPARATOR, $options->getDefaultOutputDirectory()))
@@ -128,8 +128,7 @@ EOT
         // @var Build\Options $options
         $options
             ->setCldrVersion($cldrVersion)
-            ->setLibphonenumberVersion($libPhonenumberVersion)
-            ->setLocales($locales)
+           ->setLocales($locales)
             ->setCldrDraftStatus($cldrDraftStatus)
             ->setOutputDirectory($outputDirectory)
             ->setTemporaryDirectory($temporaryDirectory)
@@ -138,6 +137,9 @@ EOT
             ->setResetPunicData($input->getOption('reset-punic-data'))
             ->setPrettyOutput($input->getOption('pretty-output'))
         ;
+        if ($libPhonenumberVersion !== null) {
+            $options->setLibphonenumberVersion($libPhonenumberVersion);
+        }
         $filesystem = $this->container->make(Filesystem::class);
         // @var Filesystem $filesystem
         try {
@@ -177,9 +179,13 @@ EOT
         return $value;
     }
 
-    protected function getLibphonenumberVersion(InputInterface $input, OutputInterface $output): string
+    protected function getLibphonenumberVersion(InputInterface $input, OutputInterface $output): ?string
     {
-        $value = trim((string) $input->getOption('libphonenumber'));
+        $value = $input->getOption('libphonenumber');
+        if ($value === null) {
+            return null;
+        }
+        $value = trim($value);
         if ($value === '') {
             $output->writeln("<error>The --libphonenumber option can't be empty</error>");
             return '';
@@ -242,19 +248,19 @@ EOT
             $directory = $filesystem->makePathAbsolute($input->getOption('temp'));
         } catch (InvalidArgumentException $x) {
             $output->writeln("<error>The --state-file option is not valid:\n{$x->getMessage()}</error>");
-            return null;
+            return '';
         }
         if (!is_dir($directory)) {
             try {
                 $filesystem->createDirectory($directory, true);
             } catch (RuntimeException $x) {
                 $output->writeln("<error>{$x->getMessage()}</error>");
-                return null;
+                return '';
             }
         }
         if (!is_writable($directory)) {
             $output->writeln(sprintf('<error>The temporary directory %s is not writable</error>', str_replace('/', DIRECTORY_SEPARATOR, $directory)));
-            return null;
+            return '';
         }
 
         return $directory;

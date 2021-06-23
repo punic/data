@@ -76,7 +76,9 @@ class DockerBuilder
         $result[] = $dockerMap->getMappedPath('app') . '/bin/punic-data-builder';
         $result[] = BuildData::NAME;
         $result[] = '--cldr=' . $options->getCldrVersion();
-        $result[] = '--libphonenumber=' . $options->getLibphonenumberVersion();
+        if ($options->getLibphonenumberVersion() !== '') {
+            $result[] = '--libphonenumber=' . $options->getLibphonenumberVersion();
+        }
         $result[] = '--locale=' . $options->getLocales()->serialize();
         $result[] = '--draft-status=' . $options->getCldrDraftStatus();
         $result[] = '--output=' . $dockerMap->getMappedPath('output');

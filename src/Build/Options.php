@@ -24,6 +24,13 @@ class Options
     public const OUTPUTDIR_PLACEHOLDER_CLDRVERSION = '<CLDR-VERSION>';
 
     /**
+     * The CLDR version since we started to use libphonenumber.
+     *
+     * @var string
+     */
+    protected const LIBPHONENUMBER_USED_SINCE_CLDR = '34';
+
+    /**
      * @var \Punic\DataBuilder\Environment
      */
     protected $environment;
@@ -157,14 +164,6 @@ class Options
     }
 
     /**
-     * Get the default libphonenumber version.
-     */
-    public function getDefaultLibphonenumberVersion(): string
-    {
-        return 'v8.12.22';
-    }
-
-    /**
      * Set the libphonenumber version.
      *
      * @param string $value empty string to reset to using the default version
@@ -183,7 +182,7 @@ class Options
      */
     public function getLibphonenumberVersion(): string
     {
-        return $this->libphonenumberVersion !== '' ? $this->libphonenumberVersion : $this->getDefaultCldrVersion();
+        return $this->libphonenumberVersion !== '' ? $this->libphonenumberVersion : static::getDefaultLibphonenumberVersionForCldrVersion($this->getCldrVersion());
     }
 
     /**
@@ -191,7 +190,7 @@ class Options
      */
     public function shouldUseLibphonenumber(): bool
     {
-        return $this->getCldrMajorVersion() >= 34;
+        return version_compare($this->getCldrVersion(), static::LIBPHONENUMBER_USED_SINCE_CLDR) >= 0;
     }
 
     /**
@@ -482,5 +481,24 @@ class Options
     public function getCldrJsonDirectoryForGeneric(string $genericID): string
     {
         return $this->getCldrJsonDirectory() . '/' . $genericID;
+    }
+
+    /**
+     * Get the libphonenumber version used for a specific CLDR version.
+     *
+     * @return string empty string if the libphonenumber is not used for the CLDR version
+     */
+    protected static function getDefaultLibphonenumberVersionForCldrVersion(string $cldrVersion): string
+    {
+        if (version_compare($cldrVersion, static::LIBPHONENUMBER_USED_SINCE_CLDR) < 0) {
+            return '';
+        }
+        if (version_compare($cldrVersion, '35.1') < 0) {
+            return 'v8.10.1';
+        }
+        if (version_compare($cldrVersion, '36') < 0) {
+            return 'v8.10.12';
+        }
+        return 'v8.12.22';
     }
 }
