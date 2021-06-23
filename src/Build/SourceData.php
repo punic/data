@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Punic\DataBuilder\Build;
 
+use Punic\DataBuilder\Environment;
 use Punic\DataBuilder\Filesystem;
 use Punic\DataBuilder\LocaleIdentifier;
 use Punic\DataBuilder\Traits;
@@ -20,6 +21,11 @@ class SourceData
     protected $filesystem;
 
     /**
+     * @var \Punic\DataBuilder\Environment
+     */
+    protected $environment;
+
+    /**
      * @var \Punic\DataBuilder\Build\Options
      */
     private $options;
@@ -29,10 +35,11 @@ class SourceData
      */
     private $availableLocales;
 
-    public function __construct(Options $options, Filesystem $filesystem)
+    public function __construct(Options $options, Filesystem $filesystem, Environment $environment)
     {
         $this->options = $options;
         $this->filesystem = $filesystem;
+        $this->environment = $environment;
     }
 
     public function getOptions(): Options
@@ -215,7 +222,7 @@ class SourceData
             } else {
                 $command = 'ant';
                 $arguments = [
-                    '-f ', str_replace('/', DIRECTORY_SEPARATOR, $this->escapeShellArg($this->getOptions()->getCldrRepositoryDirectory() . '/tools/java/build.xml')),
+                    '-f', str_replace('/', DIRECTORY_SEPARATOR, $this->escapeShellArg($this->getOptions()->getCldrRepositoryDirectory() . '/tools/java/build.xml')),
                     'jar',
                 ];
             }
