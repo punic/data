@@ -113,8 +113,10 @@ class Units extends Locale
                                             $data[$width][$unitKind][$unitName]['_per'] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
                                             break;
                                         default:
-                                            if (preg_match('/-count-(\w+)/', $pluralRuleSrc, $m)) {
-                                                $pluralRule = $m[1];
+                                            $grammaticalType = '';
+                                            if (preg_match('/(\w+)-count-(\w+)/', $pluralRuleSrc, $m)) {
+                                                $grammaticalType = $m[1];
+                                                $pluralRule = $m[2];
                                             } else {
                                                 $pluralRule = 'other';
                                             }
@@ -124,7 +126,9 @@ class Units extends Locale
                                             if (preg_match('/-case-(\w+)/', $pluralRuleSrc, $m)) {
                                                 $pluralRule .= '-' . $m[1];
                                             }
-                                            $data[$width][$unitKind][$unitName][$pluralRule] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
+                                            if ($grammaticalType === 'unitPattern' || !isset($data[$width][$unitKind][$unitName][$pluralRule])) {
+                                                $data[$width][$unitKind][$unitName][$pluralRule] = $this->toPhpSprintf($data[$width][$unitKey][$pluralRuleSrc]);
+                                            }
                                             break;
                                     }
                                 }
