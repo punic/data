@@ -131,6 +131,8 @@ class DataSymlinker
         }
         $progress->setMessage('Looking for same-content files');
         $progress->start();
+        $neededSymlinks = [];
+        $totalSymlinks = 0;
         foreach ($md5s as $md5) {
             $progress->advance();
             $similarFiles = array_keys(
@@ -160,19 +162,33 @@ class DataSymlinker
                 $sameFiles = $this->sortPaths($sameFiles);
                 $target = array_shift($sameFiles);
                 $links = array_values($sameFiles);
-                $oldMessage = $progress->getMessage();
-                $progress->setMessage("Creating {$numLinks} symbolic links pointing to " . $this->getDisplayPath($target));
+                $neededSymlinks[] = [$target, $links];
+                $totalSymlinks += $numLinks;
+            }
+        }
+        $progress->finish();
+        if ($totalSymlinks > 0) {
+            $progress = new ProgressBar($this->output, $totalSymlinks);
+            if (!$this->output->isQuiet()) {
+                $progress->setFormat('%current%/%max% (%percent:3s%%) %elapsed:6s%/%estimated:-6s% %memory:6s% -- %message%');
+            }
+            $progress->setMessage('Creating symbolic links');
+            $progress->start();
+            foreach ($neededSymlinks as $neededSymlink) {
+                [$target, $links] = $neededSymlink;
+                $numLinks = count($links);
+                $progress->setMessage("Creating {$numLinks} " . ($numLinks === 1 ? 'symbolic link' : 'symbolic links') . ' pointing to ' . $this->getDisplayPath($target));
                 $progress->display();
                 foreach ($links as $link) {
                     $this->createSymlink($link, $target);
                     unset($this->filesMD5[$link]);
                     $this->symlinks[$link] = $target;
+                    $progress->advance();
                 }
-                $progress->setMessage($oldMessage);
-                $progress->display();
+                
             }
+            $progress->finish();
         }
-        $progress->finish();
     }
 
     /**
