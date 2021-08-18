@@ -43,6 +43,7 @@ http://cldr.unicode.org/development/maven#TOC-Getting-Started---GitHub-token
 
 If you don't have a GitHub personal access token, you can create it at:
 https://github.com/settings/tokens
+You'll need the read:packages scope
 EOT
             )
         ;
