@@ -192,12 +192,14 @@ abstract class Converter
     /**
      * @param string|mixed $fmt
      *
+     * @throws \RuntimeException
+     *
      * @return string|mixed
      */
     protected function toPhpSprintf($fmt)
     {
         if (!is_string($fmt)) {
-            return $fmt;
+            throw new RuntimeException('Wrong parameter type for ' . get_class($this) . '::' . __METHOD__);
         }
 
         return preg_replace_callback(

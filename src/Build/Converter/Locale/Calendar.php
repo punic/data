@@ -33,7 +33,14 @@ class Calendar extends Locale
         $data = parent::process($data, $localeID);
         unset($data['dateTimeFormats']['appendItems']);
         foreach (array_keys($data['dateTimeFormats']) as $width) {
-            $data['dateTimeFormats'][$width] = $this->toPhpSprintf($data['dateTimeFormats'][$width]);
+            switch ($width) {
+                case 'availableFormats':
+                case 'intervalFormats':
+                    break;
+                default:
+                    $data['dateTimeFormats'][$width] = $this->toPhpSprintf($data['dateTimeFormats'][$width]);
+                    break;
+            }
         }
         foreach (['eraNames' => 'wide', 'eraAbbr' => 'abbreviated', 'eraNarrow' => 'narrow'] as $keyFrom => $keyTo) {
             if (array_key_exists($keyFrom, $data['eras'])) {
