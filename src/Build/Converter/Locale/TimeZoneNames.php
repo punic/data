@@ -33,8 +33,8 @@ class TimeZoneNames extends Locale
                     $data[$dataKey] = $this->toPhpSprintf($data[$dataKey]);
                     break;
                 case 'hourFormat':
-                case 'zone':
                     break;
+                case 'zone':
                 case 'metazone':
                     $this->clearEmptyArray($data, $dataKey);
                     break;
