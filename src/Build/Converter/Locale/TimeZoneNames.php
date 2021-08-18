@@ -34,7 +34,9 @@ class TimeZoneNames extends Locale
                     break;
                 case 'hourFormat':
                 case 'zone':
+                    break;
                 case 'metazone':
+                    $this->clearEmptyArray($data, $dataKey);
                     break;
                 default:
                     throw new RuntimeException("Unknown data key for time zone names: {$dataKey}");

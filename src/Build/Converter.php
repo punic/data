@@ -211,6 +211,22 @@ abstract class Converter
         );
     }
 
+    protected function clearEmptyArray(array &$array, string $key): void
+    {
+        if (!is_array($array[$key])) {
+            return;
+        }
+        foreach (array_keys($array[$key]) as $subKey) {
+            if (!is_string($subKey) || !is_array($array[$key][$subKey])) {
+                continue;
+            }
+            $this->clearEmptyArray($array[$key], $subKey);
+        }
+        if ($array[$key] === []) {
+            unset($array[$key]);
+        }
+    }
+
     protected function asInt(&$value): bool
     {
         switch (gettype($value)) {
