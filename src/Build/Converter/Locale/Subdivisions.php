@@ -63,9 +63,9 @@ class Subdivisions extends Locale
         }
         $localeDisplayNames = require $localeDisplayNamesFile;
 
-        $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'] =
-            ($localeDisplayNames['subdivisions'] ?? []) +
-            $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'];
+        $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision']
+            = ($localeDisplayNames['subdivisions'] ?? [])
+            + $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'];
 
         uksort($data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'], 'strcasecmp');
 

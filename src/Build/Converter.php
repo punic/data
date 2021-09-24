@@ -199,7 +199,7 @@ abstract class Converter
     protected function toPhpSprintf($fmt)
     {
         if (!is_string($fmt)) {
-            throw new RuntimeException('Wrong parameter type for ' . get_class($this) . '::' . __METHOD__);
+            throw new RuntimeException('Wrong parameter type for ' . static::class . '::' . __METHOD__);
         }
 
         return preg_replace_callback(
