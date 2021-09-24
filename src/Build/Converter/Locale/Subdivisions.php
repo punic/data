@@ -45,8 +45,16 @@ class Subdivisions extends Locale
      */
     protected function load(SourceData $sourceData, string $localeID): array
     {
+        $key = str_replace('_', '-', $localeID);
+        $data[$this->type][$key] = [];
         $locale = LocaleIdentifier::fromString($localeID);
         $localeIDs = array_merge([$localeID], $locale->getParentLocaleIdentifiers(), ['en']);
+        foreach (array_reverse($localeIDs) as $localeID) {
+            $sourceFile = $this->getSourceFile($sourceData, $localeID);
+            if (is_file($sourceFile)) {
+                $data[$this->type][$key] = $this->loadXml($sourceFile, $data[$this->type][$key]);
+            }
+        }
 
         // As of CLDR 36, England, Scotland and Wales are not stored in the subdivisions/*.xml.
         $localeDisplayNamesFile = $sourceData->getOptions()->getOutputDirectoryForLocale($localeID) . '/localeDisplayNames.php';
@@ -55,25 +63,9 @@ class Subdivisions extends Locale
         }
         $localeDisplayNames = require $localeDisplayNamesFile;
 
-        $key = str_replace('_', '-', $localeID);
-        $data = [
-            $this->type => [
-                $key => [
-                    'localeDisplayNames' => [
-                        'subdivisions' => [
-                            'subdivision' => $localeDisplayNames['subdivisions'] ?? [],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        foreach (array_reverse($localeIDs) as $localeID) {
-            $sourceFile = $this->getSourceFile($sourceData, $localeID);
-            if (is_file($sourceFile)) {
-                $data[$this->type][$key] = $this->loadXml($sourceFile, $data[$this->type][$key]);
-            }
-        }
+        $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'] =
+            ($localeDisplayNames['subdivisions'] ?? []) +
+            $data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'];
 
         uksort($data[$this->type][$key]['localeDisplayNames']['subdivisions']['subdivision'], 'strcasecmp');
 
