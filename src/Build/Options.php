@@ -115,7 +115,7 @@ class Options
      */
     public function getDefaultCldrVersion(): string
     {
-        return '39';
+        return '40';
     }
 
     /**
@@ -499,6 +499,6 @@ class Options
         if (version_compare($cldrVersion, '36') < 0) {
             return 'v8.10.12';
         }
-        return 'v8.12.22';
+        return 'v8.12.36';
     }
 }
