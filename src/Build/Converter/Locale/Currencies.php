@@ -49,9 +49,9 @@ class Currencies extends Locale implements PostProcessor
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         $final = [];
         $m = null;
         foreach ($data as $currencyCode => $currencyInfo) {

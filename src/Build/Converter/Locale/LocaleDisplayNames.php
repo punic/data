@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Locale;
 
 use Punic\DataBuilder\Build\Converter\Locale;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class LocaleDisplayNames extends Locale
@@ -19,9 +20,9 @@ class LocaleDisplayNames extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         if (!array_key_exists('localeDisplayPattern', $data)) {
             throw new RuntimeException("Missing node 'localeDisplayPattern'");
         }

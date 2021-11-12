@@ -43,7 +43,7 @@ class Plurals extends Supplemental implements TestDataProcessor
     public function convertTestData(SourceData $sourceData): array
     {
         $data = $this->load($sourceData);
-        $dt = $this->realProcess($data);
+        $dt = $this->realProcess($sourceData, $data);
 
         return $dt[1];
     }
@@ -53,9 +53,9 @@ class Plurals extends Supplemental implements TestDataProcessor
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $dt = $this->realProcess($data);
+        $dt = $this->realProcess($sourceData, $data);
 
         return $dt[0];
     }
@@ -63,9 +63,9 @@ class Plurals extends Supplemental implements TestDataProcessor
     /**
      * @return array
      */
-    private function realProcess(array $data)
+    private function realProcess(SourceData $sourceData, array $data)
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         $testData = [];
         $m = null;
         foreach ($data as $l => $lData) {

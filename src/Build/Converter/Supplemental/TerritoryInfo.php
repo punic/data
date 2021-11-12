@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Supplemental;
 
 use Punic\DataBuilder\Build\Converter\Supplemental;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class TerritoryInfo extends Supplemental
@@ -19,9 +20,9 @@ class TerritoryInfo extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         //http://www.unicode.org/reports/tr35/tr35-info.html#Supplemental_Territory_Information
         unset($data['ZZ']);
         foreach ($data as $territoryID => $territoryInfoList) {

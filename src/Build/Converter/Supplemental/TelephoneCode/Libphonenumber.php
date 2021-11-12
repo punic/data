@@ -78,7 +78,7 @@ class Libphonenumber extends TelephoneCode
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental\TelephoneCode::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
         $xml = $data['xml'];
         /** @var \SimpleXMLElement $xml */

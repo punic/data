@@ -12,7 +12,7 @@ abstract class Supplemental extends Converter
     public function convert(SourceData $sourceData): array
     {
         $data = $this->load($sourceData);
-        return $this->process($data);
+        return $this->process($sourceData, $data);
     }
 
     protected function getSourceFile(SourceData $sourceData): string
@@ -69,7 +69,7 @@ abstract class Supplemental extends Converter
         ];
     }
 
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
         return $this->simplify($data, $this->getRoots(), $this->getUnsetByPath());
     }

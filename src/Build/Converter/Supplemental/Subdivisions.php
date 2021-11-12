@@ -55,9 +55,9 @@ class Subdivisions extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         foreach (array_keys($data) as $key) {
             $data[$key]['contains'] = explode(' ', $data[$key]['_contains']);
             unset($data[$key]['_contains']);

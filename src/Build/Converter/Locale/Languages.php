@@ -6,6 +6,7 @@ namespace Punic\DataBuilder\Build\Converter\Locale;
 
 use Collator;
 use Punic\DataBuilder\Build\Converter\Locale;
+use Punic\DataBuilder\Build\SourceData;
 
 class Languages extends Locale
 {
@@ -19,9 +20,9 @@ class Languages extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $languages = parent::process($data, $localeID);
+        $languages = parent::process($sourceData, $data, $localeID);
 
         $collator = new Collator($localeID);
         $collator->asort($languages, Collator::SORT_STRING);

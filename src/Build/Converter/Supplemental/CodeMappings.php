@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Supplemental;
 
 use Punic\DataBuilder\Build\Converter\Supplemental;
+use Punic\DataBuilder\Build\SourceData;
 
 class CodeMappings extends Supplemental
 {
@@ -18,9 +19,9 @@ class CodeMappings extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $mappings = parent::process($data);
+        $mappings = parent::process($sourceData, $data);
 
         $data = [];
         foreach ($mappings as $key => $mapping) {

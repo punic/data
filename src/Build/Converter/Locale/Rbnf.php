@@ -80,9 +80,9 @@ class Rbnf extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         $rulesets = [];
         foreach ($data as $group => $rulesetGrouping) {
             if ($group === 'NumberingSystemRules' && $localeID !== 'root') {

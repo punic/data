@@ -6,6 +6,7 @@ namespace Punic\DataBuilder\Build\Converter\Locale;
 
 use Collator;
 use Punic\DataBuilder\Build\Converter\Locale;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class Scripts extends Locale
@@ -20,9 +21,9 @@ class Scripts extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         [$names, $alts] = $this->extractScripts($data);
         $this->fillMissingScriptNames($names, $alts);
         $this->sortScriptNames($localeID, $names);

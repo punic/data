@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Supplemental;
 
 use Punic\DataBuilder\Build\Converter\Supplemental;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class CurrencyData extends Supplemental
@@ -19,9 +20,9 @@ class CurrencyData extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         $keys = ['fractions', 'region'];
         if ((count($data) !== count($keys)) || array_diff($keys, array_keys($data)) !== []) {
             throw new RuntimeException('Unexpected keys in currencyData.json');

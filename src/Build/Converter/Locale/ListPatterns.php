@@ -19,9 +19,9 @@ class ListPatterns extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process($sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         $result = [];
         $m = null;
         foreach (array_keys($data) as $patternType) {

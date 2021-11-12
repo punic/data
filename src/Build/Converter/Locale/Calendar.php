@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Locale;
 
 use Punic\DataBuilder\Build\Converter\Locale;
+use Punic\DataBuilder\Build\SourceData;
 
 class Calendar extends Locale
 {
@@ -28,9 +29,9 @@ class Calendar extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         unset($data['dateTimeFormats']['appendItems']);
         foreach (array_keys($data['dateTimeFormats']) as $width) {
             switch ($width) {
