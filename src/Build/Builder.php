@@ -70,11 +70,15 @@ class Builder
         }
         $this->configureCldrRepository($sourceData, $output);
         $this->prepareGenericCldrFiles($sourceData, $output);
-        $this->initializePunicData($sourceData->getOptions(), $output);
+        if (!$options->isJsonOnly()) {
+            $this->initializePunicData($sourceData->getOptions(), $output);
+        }
         $localeFiles = $this->convertLocales($localeIDs, $converterManager, $output);
         [$supplementalFiles, $testFiles] = $this->convertSupplementalFiles($converterManager, $output);
-        if ($sourceData->getOptions()->getStatefilePath() !== null) {
-            $this->writeStateFile($sourceData, $localeIDs, ['localeFiles' => $localeFiles, 'supplementalFiles' => $supplementalFiles, 'testFiles' => $testFiles], $output);
+        if (!$sourceData->getOptions()->isJsonOnly()) {
+            if ($sourceData->getOptions()->getStatefilePath() !== null) {
+                $this->writeStateFile($sourceData, $localeIDs, ['localeFiles' => $localeFiles, 'supplementalFiles' => $supplementalFiles, 'testFiles' => $testFiles], $output);
+            }
         }
     }
 
@@ -276,6 +280,9 @@ class Builder
             $converterManager->getSourceData()->ensureCldrJsonLocale($localeID);
             $progress->setMessage($baseMessage);
             $progress->display();
+        }
+        if ($converterManager->getSourceData()->getOptions()->isJsonOnly()) {
+            return [];
         }
         $progress->setMessage("{$baseMessage} - converting");
         $progress->display();

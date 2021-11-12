@@ -99,6 +99,9 @@ class DockerBuilder
         if ($options->isPrettyOutput()) {
             $result[] = '--pretty-output';
         }
+        if ($options->isJsonOnly()) {
+            $result[] = '--json-only';
+        }
 
         return $result;
     }

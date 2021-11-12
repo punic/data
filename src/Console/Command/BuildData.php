@@ -48,6 +48,7 @@ class BuildData extends Command
             ->addOption('reset-cldr-data', 'x', InputOption::VALUE_NONE, 'Reset the source CLDR data before the execution')
             ->addOption('reset-punic-data', 'r', InputOption::VALUE_NONE, 'Reset the destination Punic data before the execution')
             ->addOption('pretty-output', 'u', InputOption::VALUE_NONE, 'Generated expanded (uncompressed) PHP')
+            ->addOption('json-only', 'j', InputOption::VALUE_NONE, "Just build the CLDR JSON data, don't parse it")
             ->setHelp(
                 <<<EOT
 # DEFINING THE LOCALES TO BE PROCESSED
@@ -136,6 +137,7 @@ EOT
             ->setResetCldrData($input->getOption('reset-cldr-data'))
             ->setResetPunicData($input->getOption('reset-punic-data'))
             ->setPrettyOutput($input->getOption('pretty-output'))
+            ->setJsonOnly($input->getOption('json-only'))
         ;
         if ($libPhonenumberVersion !== null) {
             $options->setLibphonenumberVersion($libPhonenumberVersion);

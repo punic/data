@@ -105,6 +105,13 @@ class Options
      */
     private $prettyOutput = false;
 
+    /**
+     * Just build the CLDR JSON data, don't parse it?
+     *
+     * @var bool
+     */
+    private $jsonOnly = false;
+
     public function __construct(Environment $environment)
     {
         $this->environment = $environment;
@@ -433,6 +440,26 @@ class Options
         return $this;
     }
 
+    /**
+     * Just build the CLDR JSON data, don't parse it?
+     */
+    public function isJsonOnly(): bool
+    {
+        return $this->jsonOnly;
+    }
+    
+    /**
+     * Just build the CLDR JSON data, don't parse it?
+     *
+     * @return $this
+     */
+    public function setJsonOnly(bool $value): self
+    {
+        $this->jsonOnly = $value;
+        
+        return $this;
+    }
+    
     /**
      * Get the repository directory path.
      */

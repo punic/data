@@ -55,6 +55,9 @@ class ConverterManager
      */
     public function convertLocale(string $localeID): array
     {
+        if ($this->getSourceData()->getOptions()->isJsonOnly()) {
+            return [];
+        }
         $destinationFiles = [];
         $outputDirectory = $this->getSourceData()->getOptions()->getOutputDirectoryForLocale($localeID);
         if (!is_dir($outputDirectory)) {
@@ -91,6 +94,9 @@ class ConverterManager
      */
     public function convertSupplementalFiles(): array
     {
+        if ($this->getSourceData()->getOptions()->isJsonOnly()) {
+            return [[], []];
+        }
         $supplementalFiles = [];
         $testFiles = [];
         $outputDirectory = $this->getSourceData()->getOptions()->getOutputDirectory();
