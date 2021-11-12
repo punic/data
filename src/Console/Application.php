@@ -29,6 +29,7 @@ class Application extends SymfonyApplication
             $this->container->make(Command\CreateMvnSettings::class),
             $this->container->make(Command\BuildData::class),
             $this->container->make(Command\SymlinkData::class),
+            $this->container->make(Command\FormatData::class),
         ]);
     }
 }
