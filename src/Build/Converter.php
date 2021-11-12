@@ -64,8 +64,8 @@ abstract class Converter
                     }
                 }
             }
-            $this->checkExactKeys($data, [$root]);
-            $data = $data[$root];
+            [$newRoot] = $this->checkExactKeys($data, [$root]);
+            $data = $data[$newRoot];
             $path .= "/{$root}";
         }
         if (!is_array($data)) {
@@ -80,14 +80,20 @@ abstract class Converter
      * @param string[] $expectedKeys
      *
      * @throws \RuntimeException
+     *
+     * @return string[]
      */
-    protected function checkExactKeys($node, array $expectedKeys): void
+    protected function checkExactKeys($node, array $expectedKeys): array
     {
         if (!is_array($node)) {
             throw new RuntimeException("{$node} is not an array");
         }
         $nodeKeys = array_keys($node);
-        $missingKeys = array_diff($expectedKeys, $nodeKeys);
+        $pRoot = array_search('root', $expectedKeys, true);
+        if ($pRoot !== false && !in_array('root', $nodeKeys, true) && in_array('und', $nodeKeys, true)) {
+            $expectedKeys[$pRoot] = 'und';
+        }
+        $missingKeys = array_values(array_diff($expectedKeys, $nodeKeys));
         if ($missingKeys !== []) {
             throw new RuntimeException('Missing these node keys: ' . implode(', ', $missingKeys));
         }
@@ -95,6 +101,8 @@ abstract class Converter
         if ($extraKeys !== []) {
             throw new RuntimeException('Unexpected node keys: ' . implode(', ', $extraKeys));
         }
+
+        return $expectedKeys;
     }
 
     /**

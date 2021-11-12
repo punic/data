@@ -511,6 +511,17 @@ class Options
     }
 
     /**
+     * Get the "root" source locale identifier.
+     */
+    public function getSourceRootLocaleID(): string
+    {
+        if ($this->getCldrMajorVersion() <= 39) {
+            return 'root';
+        }
+        return 'und';
+    }
+
+    /**
      * Get the libphonenumber version used for a specific CLDR version.
      *
      * @return string empty string if the libphonenumber is not used for the CLDR version

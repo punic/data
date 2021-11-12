@@ -173,6 +173,12 @@ class SourceData
         if ($availableLocales === []) {
             throw new RuntimeException('No locales found in the directory directory ' . str_replace('/', DIRECTORY_SEPARATOR, $dir));
         }
+        if (!in_array('root', $availableLocales, true)) {
+            $undPosition = array_search('und', $availableLocales, true);
+            if ($undPosition !== false) {
+                $availableLocales[$undPosition] = 'root';
+            }
+        }
         natcasesort($availableLocales);
         $this->availableLocales = array_values($availableLocales);
 

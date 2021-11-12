@@ -22,9 +22,10 @@ class Rbnf extends Locale
      */
     protected function getSourceFile(SourceData $sourceData, string $localeID): string
     {
-        $base = $sourceData->getOptions()->getCldrJsonDirectoryForGeneric('rbnf') . '/';
+        $baseFolder = $sourceData->getOptions()->getCldrJsonDirectoryForGeneric('rbnf') . '/';
+        $baseFileName = $localeID === 'root' ? $sourceData->getOptions()->getSourceRootLocaleID() : $localeID;
 
-        return $base . ($sourceData->getOptions()->getCldrMajorVersion() >= 38 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
+        return $baseFolder . ($sourceData->getOptions()->getCldrMajorVersion() >= 38 ? "{$localeID}/{$baseFileName}.json" : "{$baseFileName}.json");
     }
 
     /**
