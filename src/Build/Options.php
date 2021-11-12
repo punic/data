@@ -447,7 +447,7 @@ class Options
     {
         return $this->jsonOnly;
     }
-    
+
     /**
      * Just build the CLDR JSON data, don't parse it?
      *
@@ -456,10 +456,10 @@ class Options
     public function setJsonOnly(bool $value): self
     {
         $this->jsonOnly = $value;
-        
+
         return $this;
     }
-    
+
     /**
      * Get the repository directory path.
      */

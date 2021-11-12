@@ -64,7 +64,7 @@ class Units extends Locale
                                     // @todo
                                     continue 2;
                                 }
-                                if (array_keys($data[$width][$unitKey]) === ['gender']) {
+                                if (['gender'] === array_keys($data[$width][$unitKey])) {
                                     // @todo
                                     continue 2;
                                 }

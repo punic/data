@@ -99,7 +99,7 @@ EOT
     {
         return require $path;
     }
-    
+
     protected function sortSourceData(array $data): array
     {
         $numKeys = count($data);
@@ -160,7 +160,7 @@ EOT
         if ($result === []) {
             throw new InvalidArgumentException('No folder paths specified');
         }
-        
+
         return $result;
     }
 }
