@@ -64,6 +64,10 @@ class Units extends Locale
                                     // @todo
                                     continue 2;
                                 }
+                                if (array_keys($data[$width][$unitKey]) === ['gender']) {
+                                    // @todo
+                                    continue 2;
+                                }
                                 if (!preg_match('/^(\\w+)?-(.+)$/', $unitKey, $m)) {
                                     throw new RuntimeException("Invalid node (2) '{$width}/{$unitKey}'");
                                 }
