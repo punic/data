@@ -185,7 +185,6 @@ class DataSymlinker
                     $this->symlinks[$link] = $target;
                     $progress->advance();
                 }
-                
             }
             $progress->finish();
         }
