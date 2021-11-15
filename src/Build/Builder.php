@@ -272,10 +272,10 @@ class Builder
     protected function convertLocale(string $localeID, ConverterManager $converterManager, ProgressBar $progress): array
     {
         $message = $progress->getMessage();
-        $baseMessage = "Processing {$localeID}";
+        $baseMessage = $localeID;
         $progress->setMessage($baseMessage);
         if (!$converterManager->getSourceData()->isCldrJsonLocalePresent($localeID)) {
-            $progress->setMessage("{$baseMessage} - building source JSON data");
+            $progress->setMessage("{$baseMessage}: building source JSON data");
             $progress->display();
             $converterManager->getSourceData()->ensureCldrJsonLocale($localeID);
             $progress->setMessage($baseMessage);
@@ -284,7 +284,7 @@ class Builder
         if ($converterManager->getSourceData()->getOptions()->isJsonOnly()) {
             return [];
         }
-        $progress->setMessage("{$baseMessage} - converting");
+        $progress->setMessage("{$baseMessage}: converting");
         $progress->display();
         $localeFiles = $converterManager->convertLocale($localeID);
         $message = $progress->setMessage($message);
