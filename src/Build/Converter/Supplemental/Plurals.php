@@ -66,6 +66,11 @@ class Plurals extends Supplemental implements TestDataProcessor
     private function realProcess(SourceData $sourceData, array $data)
     {
         $data = parent::process($sourceData, $data);
+        if (array_key_exists('und', $data) && !array_key_exists('root', $data)) {
+            $data['root'] = $data['und'];
+            unset($data['und']);
+            ksort($data);
+        }
         $testData = [];
         $m = null;
         foreach ($data as $l => $lData) {
