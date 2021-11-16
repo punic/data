@@ -1,0 +1,1 @@
+../../39/jgo/territories.php

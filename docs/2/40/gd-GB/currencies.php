@@ -1,0 +1,1 @@
+../../39/gd/currencies.php

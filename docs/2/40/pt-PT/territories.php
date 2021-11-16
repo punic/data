@@ -1,0 +1,1 @@
+../pt-AO/territories.php

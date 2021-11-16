@@ -1,0 +1,1 @@
+../sk/localeDisplayNames.php

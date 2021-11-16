@@ -1,0 +1,1 @@
+../kgp/currencies.php
