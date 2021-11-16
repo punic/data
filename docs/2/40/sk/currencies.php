@@ -1,0 +1,1 @@
+../../39/sk/currencies.php

@@ -55,9 +55,9 @@ class TimeZone extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $zones = parent::process($data);
+        $zones = parent::process($sourceData, $data);
         $data = [];
         foreach (array_keys($zones) as $zone) {
             $aliases = explode(' ', $zone);

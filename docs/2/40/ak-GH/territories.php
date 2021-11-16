@@ -1,0 +1,1 @@
+../../39/ak/territories.php

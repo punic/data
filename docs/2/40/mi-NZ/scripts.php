@@ -1,0 +1,1 @@
+../mi/scripts.php

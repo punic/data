@@ -46,7 +46,7 @@ class Subdivisions extends Locale
     protected function load(SourceData $sourceData, string $localeID): array
     {
         $key = str_replace('_', '-', $localeID);
-        $data[$this->type][$key] = [];
+        $data = [$this->type => [$key => []]];
         $locale = LocaleIdentifier::fromString($localeID);
         $localeIDs = array_merge([$localeID], $locale->getParentLocaleIdentifiers(), ['en']);
         foreach (array_reverse($localeIDs) as $localeID) {

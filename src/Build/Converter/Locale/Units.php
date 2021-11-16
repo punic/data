@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Locale;
 
 use Punic\DataBuilder\Build\Converter\Locale;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class Units extends Locale
@@ -19,9 +20,9 @@ class Units extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         $originalData = $data;
         $m = null;
         foreach (array_keys($data) as $width) {
@@ -60,6 +61,10 @@ class Units extends Locale
                                     continue 2;
                                 }
                                 if (preg_match('/^power\d+$/', $unitKey)) {
+                                    // @todo
+                                    continue 2;
+                                }
+                                if (['gender'] === array_keys($data[$width][$unitKey])) {
                                     // @todo
                                     continue 2;
                                 }

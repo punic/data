@@ -22,9 +22,10 @@ class Rbnf extends Locale
      */
     protected function getSourceFile(SourceData $sourceData, string $localeID): string
     {
-        $base = $sourceData->getOptions()->getCldrJsonDirectoryForGeneric('rbnf') . '/';
+        $baseFolder = $sourceData->getOptions()->getCldrJsonDirectoryForGeneric('rbnf') . '/';
+        $baseFileName = $localeID === 'root' ? $sourceData->getOptions()->getSourceRootLocaleID() : $localeID;
 
-        return $base . ($sourceData->getOptions()->getCldrMajorVersion() >= 38 ? "{$localeID}/{$localeID}.json" : "{$localeID}.json");
+        return $baseFolder . ($sourceData->getOptions()->getCldrMajorVersion() >= 38 ? "{$localeID}/{$baseFileName}.json" : "{$baseFileName}.json");
     }
 
     /**
@@ -80,9 +81,9 @@ class Rbnf extends Locale
      *
      * @see \Punic\DataBuilder\Build\Converter\Locale::process()
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
-        $data = parent::process($data, $localeID);
+        $data = parent::process($sourceData, $data, $localeID);
         $rulesets = [];
         foreach ($data as $group => $rulesetGrouping) {
             if ($group === 'NumberingSystemRules' && $localeID !== 'root') {

@@ -70,11 +70,15 @@ class Builder
         }
         $this->configureCldrRepository($sourceData, $output);
         $this->prepareGenericCldrFiles($sourceData, $output);
-        $this->initializePunicData($sourceData->getOptions(), $output);
+        if (!$options->isJsonOnly()) {
+            $this->initializePunicData($sourceData->getOptions(), $output);
+        }
         $localeFiles = $this->convertLocales($localeIDs, $converterManager, $output);
         [$supplementalFiles, $testFiles] = $this->convertSupplementalFiles($converterManager, $output);
-        if ($sourceData->getOptions()->getStatefilePath() !== null) {
-            $this->writeStateFile($sourceData, $localeIDs, ['localeFiles' => $localeFiles, 'supplementalFiles' => $supplementalFiles, 'testFiles' => $testFiles], $output);
+        if (!$sourceData->getOptions()->isJsonOnly()) {
+            if ($sourceData->getOptions()->getStatefilePath() !== null) {
+                $this->writeStateFile($sourceData, $localeIDs, ['localeFiles' => $localeFiles, 'supplementalFiles' => $supplementalFiles, 'testFiles' => $testFiles], $output);
+            }
         }
     }
 
@@ -268,16 +272,19 @@ class Builder
     protected function convertLocale(string $localeID, ConverterManager $converterManager, ProgressBar $progress): array
     {
         $message = $progress->getMessage();
-        $baseMessage = "Processing {$localeID}";
+        $baseMessage = $localeID;
         $progress->setMessage($baseMessage);
         if (!$converterManager->getSourceData()->isCldrJsonLocalePresent($localeID)) {
-            $progress->setMessage("{$baseMessage} - building source JSON data");
+            $progress->setMessage("{$baseMessage}: building source JSON data");
             $progress->display();
             $converterManager->getSourceData()->ensureCldrJsonLocale($localeID);
             $progress->setMessage($baseMessage);
             $progress->display();
         }
-        $progress->setMessage("{$baseMessage} - converting");
+        if ($converterManager->getSourceData()->getOptions()->isJsonOnly()) {
+            return [];
+        }
+        $progress->setMessage("{$baseMessage}: converting");
         $progress->display();
         $localeFiles = $converterManager->convertLocale($localeID);
         $message = $progress->setMessage($message);

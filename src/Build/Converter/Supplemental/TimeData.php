@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Supplemental;
 
 use Punic\DataBuilder\Build\Converter\Supplemental;
+use Punic\DataBuilder\Build\SourceData;
 
 class TimeData extends Supplemental
 {
@@ -18,9 +19,9 @@ class TimeData extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         foreach (array_keys($data) as $key) {
             $data[$key]['preferred'] = $data[$key]['_preferred'];
             unset($data[$key]['_preferred']);

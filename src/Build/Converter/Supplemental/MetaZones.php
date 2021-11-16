@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Punic\DataBuilder\Build\Converter\Supplemental;
 
 use Punic\DataBuilder\Build\Converter\Supplemental;
+use Punic\DataBuilder\Build\SourceData;
 use RuntimeException;
 
 class MetaZones extends Supplemental
@@ -19,9 +20,9 @@ class MetaZones extends Supplemental
      *
      * @see \Punic\DataBuilder\Build\Converter\Supplemental::process()
      */
-    protected function process(array $data): array
+    protected function process(SourceData $sourceData, array $data): array
     {
-        $data = parent::process($data);
+        $data = parent::process($sourceData, $data);
         $this->checkExactKeys($data['metazoneInfo'], ['timezone']);
         $data['metazoneInfo'] = $data['metazoneInfo']['timezone'];
         foreach ($data['metazoneInfo'] as $id0 => $info0) {

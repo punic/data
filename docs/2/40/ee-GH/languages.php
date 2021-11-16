@@ -1,0 +1,1 @@
+../ee/languages.php

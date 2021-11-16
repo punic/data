@@ -1,1 +1,1 @@
-../agq/subdivisions.php
+../ckb/subdivisions.php

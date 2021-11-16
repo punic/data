@@ -1,0 +1,1 @@
+../sat/scripts.php

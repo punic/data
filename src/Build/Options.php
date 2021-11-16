@@ -105,6 +105,13 @@ class Options
      */
     private $prettyOutput = false;
 
+    /**
+     * Just build the CLDR JSON data, don't parse it?
+     *
+     * @var bool
+     */
+    private $jsonOnly = false;
+
     public function __construct(Environment $environment)
     {
         $this->environment = $environment;
@@ -115,7 +122,7 @@ class Options
      */
     public function getDefaultCldrVersion(): string
     {
-        return '39';
+        return '40';
     }
 
     /**
@@ -434,6 +441,26 @@ class Options
     }
 
     /**
+     * Just build the CLDR JSON data, don't parse it?
+     */
+    public function isJsonOnly(): bool
+    {
+        return $this->jsonOnly;
+    }
+
+    /**
+     * Just build the CLDR JSON data, don't parse it?
+     *
+     * @return $this
+     */
+    public function setJsonOnly(bool $value): self
+    {
+        $this->jsonOnly = $value;
+
+        return $this;
+    }
+
+    /**
      * Get the repository directory path.
      */
     public function getCldrRepositoryDirectory(): string
@@ -484,6 +511,17 @@ class Options
     }
 
     /**
+     * Get the "root" source locale identifier.
+     */
+    public function getSourceRootLocaleID(): string
+    {
+        if ($this->getCldrMajorVersion() <= 39) {
+            return 'root';
+        }
+        return 'und';
+    }
+
+    /**
      * Get the libphonenumber version used for a specific CLDR version.
      *
      * @return string empty string if the libphonenumber is not used for the CLDR version
@@ -499,6 +537,6 @@ class Options
         if (version_compare($cldrVersion, '36') < 0) {
             return 'v8.10.12';
         }
-        return 'v8.12.22';
+        return 'v8.12.36';
     }
 }

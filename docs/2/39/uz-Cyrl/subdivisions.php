@@ -1,1 +1,1 @@
-../uz/subdivisions.php
+../uz-Arab/subdivisions.php

@@ -129,9 +129,6 @@ class Locales
                     $localeID = $value;
                     break;
             }
-            if ($localeID === 'root') {
-                $localeID = 'en_US';
-            }
             $locale = LocaleIdentifier::fromString($localeID);
             if ($locale === null) {
                 throw new InvalidArgumentException("Invalid locale identifier specified: {$value}");

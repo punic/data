@@ -1,0 +1,1 @@
+../../39/sat/territories.php

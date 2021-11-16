@@ -16,7 +16,7 @@ abstract class Locale extends Converter
     public function convert(SourceData $sourceData, string $localeID): array
     {
         $data = $this->load($sourceData, $localeID);
-        return $this->process($data, $localeID);
+        return $this->process($sourceData, $data, $localeID);
     }
 
     protected function getSourceFileName(): string
@@ -74,7 +74,7 @@ abstract class Locale extends Converter
     /**
      * @throws \RuntimeException
      */
-    protected function process(array $data, string $localeID): array
+    protected function process(SourceData $sourceData, array $data, string $localeID): array
     {
         return $this->simplify($data, $this->getRoots($localeID), $this->getUnsetByPath($localeID));
     }
