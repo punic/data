@@ -41,14 +41,14 @@
         }
     },
     "require": {
-        "php": ">=7.2.5",
-        "illuminate/container": "^7.30",
-        "symfony/console": "^5.3"
+        "php": "^8.1",
+        "illuminate/container": "^9.35",
+        "symfony/console": "^6.1"
     },
     "config": {
         "optimize-autoloader": true,
         "platform": {
-            "php": "7.2.5"
+            "php": "8.1.11"
         },
         "sort-packages": true
     },

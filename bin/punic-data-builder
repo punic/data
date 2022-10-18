@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-if (PHP_VERSION_ID < 70200) {
-    fwrite(STDERR, "This script requires PHP 7.2+\n");
+if (PHP_VERSION_ID < 80100) {
+    fwrite(STDERR, "This script requires PHP 8.1+\n");
     exit(1);
 }
 
