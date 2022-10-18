@@ -122,7 +122,7 @@ class Options
      */
     public function getDefaultCldrVersion(): string
     {
-        return '40';
+        return '42';
     }
 
     /**
