@@ -8,10 +8,10 @@ So, a typical process would be:
 
 ```sh
 
-$ ./bin/punic-symlink-data expand
+$ ./bin/punic-data-builder data:symlink expand
 
-$ ./bin/punic-build-data-docker
+$ ./bin/punic-data-builder data:build --docker
 
-$ ./bin/punic-symlink-data create
+$ ./bin/punic-data-builder data:symlink compact
 
 ```
