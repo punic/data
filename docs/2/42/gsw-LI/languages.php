@@ -1,0 +1,1 @@
+../gsw/languages.php

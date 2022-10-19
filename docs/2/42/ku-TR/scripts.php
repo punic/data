@@ -1,0 +1,1 @@
+../ku/scripts.php

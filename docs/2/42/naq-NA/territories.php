@@ -1,0 +1,1 @@
+../naq/territories.php

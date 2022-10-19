@@ -1,0 +1,1 @@
+../bgc/languages.php

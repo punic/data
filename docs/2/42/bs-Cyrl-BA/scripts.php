@@ -1,0 +1,1 @@
+../bs-Cyrl/scripts.php

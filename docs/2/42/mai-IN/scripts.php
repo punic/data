@@ -1,0 +1,1 @@
+../mai/scripts.php

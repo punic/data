@@ -1,0 +1,1 @@
+../ks-Deva/listPatterns.php

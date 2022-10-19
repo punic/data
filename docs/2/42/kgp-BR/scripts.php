@@ -1,0 +1,1 @@
+../kgp/scripts.php

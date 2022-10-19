@@ -1,0 +1,1 @@
+../mgo/scripts.php
