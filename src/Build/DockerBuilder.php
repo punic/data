@@ -111,22 +111,23 @@ class DockerBuilder
         $workingDirectoryPath = static::WORKING_DIRECTORY_PATH;
 
         return <<<EOT
-FROM alpine:3.13
+FROM alpine:3.16
 
 RUN apk upgrade -U \
     && apk add --update --no-cache \
         git \
         git-lfs \
-        openjdk8 \
+        openjdk11 \
         apache-ant \
         maven \
-        php7 \
-        php7-dom \
-        php7-iconv \
-        php7-intl \
-        php7-json \
-        php7-openssl \
-        php7-simplexml \
+        php81-cli \
+        php81-dom \
+        php81-iconv \
+        php81-intl \
+        php81-json \
+        php81-openssl \
+        php81-simplexml \
+    && ln -s /usr/bin/php81 /usr/bin/php \
     && mkdir -p '{$workingDirectoryPath}'
 EOT
         ;

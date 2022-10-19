@@ -1,0 +1,1 @@
+../ccp/currencies.php

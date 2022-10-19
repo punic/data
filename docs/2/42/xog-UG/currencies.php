@@ -1,0 +1,1 @@
+../xog/currencies.php

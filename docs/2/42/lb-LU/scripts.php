@@ -1,0 +1,1 @@
+../lb/scripts.php

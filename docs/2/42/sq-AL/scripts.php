@@ -1,0 +1,1 @@
+../sq/scripts.php
